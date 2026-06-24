@@ -204,7 +204,6 @@ public class HttpFileServer : IDisposable
 ```
 
 **关键设计决策**：
-- **关键设计决策**：
 - **路径安全**：所有用户输入路径必须解析后仍在 `RootDir` 内（防 `../` 越权）
   ```csharp
   string ResolveSafePath(string userPath)
