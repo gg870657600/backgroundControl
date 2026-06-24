@@ -63,8 +63,6 @@ public class HttpConfig
     public bool   Enabled         { get; set; } = false;
     public int    Port            { get; set; } = 8080;
     public string RootDir         { get; set; } = @"C:\";
-    public string Username        { get; set; } = "admin";
-    public string Password        { get; set; } = "Changeme_123";
     /// <summary>HTTP 上传大小限制（字节），默认 10GB</summary>
     public long   MaxUploadBytes  { get; set; } = 10L * 1024 * 1024 * 1024;
 }
@@ -76,9 +74,8 @@ public class FtpConfig
     public string RootDir         { get; set; } = @"C:\";
     public int    PassiveStart    { get; set; } = 50000;
     public int    PassiveEnd      { get; set; } = 50100;
-    public string Username        { get; set; } = "admin";
-    public string Password        { get; set; } = "Changeme_123";
-    public bool   AllowAnonymous  { get; set; } = false;
+    /// <summary>FTP 是否允许匿名登录（用户名 anonymous，密码任意）</summary>
+    public bool   AllowAnonymous  { get; set; } = true;
 }
 
 public class IperfConfig

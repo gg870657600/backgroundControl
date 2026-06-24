@@ -30,10 +30,8 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
     {
         InitializeComponent();
         _cfg = ToolsConfig.Load();
-        TxtPort.Text = _cfg.Http.Port.ToString();
-        TxtRoot.Text = _cfg.Http.RootDir;
-        TxtUser.Text = _cfg.Http.Username;
-        TxtPass.Password = _cfg.Http.Password;
+        TxtPort.Text      = _cfg.Http.Port.ToString();
+        TxtRoot.Text      = _cfg.Http.RootDir;
 
         AppendLog("就绪。请配置端口和根目录，然后点击 启动。");
     }
@@ -92,8 +90,6 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
         // 持久化配置
         _cfg.Http.Port     = port;
         _cfg.Http.RootDir  = TxtRoot.Text;
-        _cfg.Http.Username = TxtUser.Text;
-        _cfg.Http.Password = TxtPass.Password;
         try { _cfg.Save(); } catch { /* 配置文件被占用不影响启动 */ }
 
         // 启动服务
@@ -108,8 +104,6 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
             TxtUrl.Foreground = System.Windows.Media.Brushes.Green;
             TxtPort.IsEnabled   = false;
             TxtRoot.IsEnabled   = false;
-            TxtUser.IsEnabled   = false;
-            TxtPass.IsEnabled   = false;
             BtnStart.IsEnabled  = false;
             BtnStop.IsEnabled   = true;
         }
@@ -134,8 +128,6 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
     {
         TxtPort.IsEnabled  = !running;
         TxtRoot.IsEnabled  = !running;
-        TxtUser.IsEnabled  = !running;
-        TxtPass.IsEnabled  = !running;
         BtnStart.IsEnabled = !running;
         BtnStop.IsEnabled  = running;
 

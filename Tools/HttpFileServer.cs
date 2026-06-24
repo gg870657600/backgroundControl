@@ -114,9 +114,6 @@ public class HttpFileServer : IDisposable
                 return;
             }
 
-            // Basic Auth（GET 跳过）
-            if (!BasicAuthHandler.TryAuthenticate(ctx, _cfg)) return;
-
             // 解析 URL 路径为本地路径
             string localPath;
             try { localPath = ResolveSafePath(rawPath); }
@@ -473,7 +470,7 @@ public class HttpFileServer : IDisposable
         }
         sb.AppendLine("</table>");
 
-        sb.AppendLine($"<div class=\"footer\">BackgroundControl HTTP File Server · {_cfg.Username}:{_cfg.Password} · POST/DELETE 需 Basic Auth</div>");
+        sb.AppendLine($"<div class=\"footer\">BackgroundControl HTTP File Server · {_cfg.GetType().Name} · 无认证开放模式</div>");
         sb.AppendLine("</body></html>");
         return sb.ToString();
     }

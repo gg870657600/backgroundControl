@@ -47,8 +47,6 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="端口"     Style="{StaticResource LblStyle}"/>
@@ -61,19 +59,13 @@
                     <TextBox x:Name="TxtRoot" Text="C:\" Style="{StaticResource BoxStyle}"/>
                 </DockPanel>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="用户名"   Style="{StaticResource LblStyle}"/>
-                <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtUser" Text="admin" Style="{StaticResource BoxStyle}" Margin="0,4"/>
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="密码"     Style="{StaticResource LblStyle}"/>
-                <PasswordBox Grid.Row="3" Grid.Column="1" x:Name="TxtPass" Password="Changeme_123" 
-                             Padding="6,4" BorderBrush="#BDC3C7" Margin="0,4"/>
-
                 <Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="2" x:Name="BtnStart" Content="▶ 启动"
                         Background="#27AE60" Style="{StaticResource BtnStyle}" Width="100" Height="48"
                         Margin="12,4,0,4" Click="Start_Click"/>
-                <Button Grid.Row="2" Grid.Column="2" Grid.RowSpan="2" x:Name="BtnStop"  Content="■ 停止"
+                <Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="2" x:Name="BtnStop"  Content="■ 停止"
                         Background="#E74C3C" Style="{StaticResource BtnStyle}" Width="100" Height="48"
-                        Margin="12,4,0,4" Click="Stop_Click" IsEnabled="False"/>
+                        Margin="12,4,0,4" Click="Stop_Click" IsEnabled="False"
+                        Visibility="Collapsed"/>
             </Grid>
         </Border>
 
