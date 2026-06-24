@@ -204,6 +204,7 @@ public class HttpFileServer : IDisposable
 ```
 
 **关键设计决策**：
+- **关键设计决策**：
 - **路径安全**：所有用户输入路径必须解析后仍在 `RootDir` 内（防 `../` 越权）
   ```csharp
   string ResolveSafePath(string userPath)
@@ -215,8 +216,9 @@ public class HttpFileServer : IDisposable
       return combined;
   }
   ```
+- **RootDir 安全警告**：默认 `C:\` 暴露整个系统盘，**强烈建议**首次启动时通过 UI 选择子目录（如 `D:\share`）。HTTP 服务运行时不应以管理员权限运行。
 - **Range 支持**：解析 `Range: bytes=0-1023`，用 `FileStream` 的 `Position` + `CopyToAsync` 流式返回
-- **上传大小限制**：用 `MultipartReader` 时累加 `ContentLength`，超过 `MaxUploadBytes` 直接断连
+- **上传大小限制**：用 `MultipartReader` 时累加 `ContentLength`，超过 `MaxUploadBytes`（默认 10GB）直接断连
 - **大文件不缓存**：HTML 模板、目录列表全部每次重新生成，不放内存
 - **认证**：除 `/` 的 GET 列出、文件下载外，POST/DELETE 必须 Basic Auth
 - **错误响应**：404 返回简单 HTML 页面，500 返回纯文本错误信息
@@ -523,7 +525,7 @@ private void ToolsButton_Click(object sender, RoutedEventArgs e)
   首次启动 HTTP/FTP 监听，Windows Defender 会弹窗。manifest 加 `requestedExecutionLevel` 申请网络权限可减少弹窗次数（但无法消除首次弹窗）。
 
 - **Q3: 大文件上传超时**  
-  1GB 上传，HTTP 默认 `Timeout` 可能不够。`HttpListener` 需要手动设置 `TimeoutManager.IdleConnection` 等属性。
+  10GB 上传，HTTP 默认 `Timeout` 可能不够。`HttpListener` 需要手动设置 `TimeoutManager.IdleConnection` 等属性。
 
 - **Q4: 文件名编码**  
   浏览器上传中文文件名要 URL 编码处理；FTP 端用 UTF-8 还是 GBK 由 modem 端决定，需要实测。
