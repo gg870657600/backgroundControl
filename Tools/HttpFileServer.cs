@@ -269,6 +269,10 @@ public class HttpFileServer : IDisposable
         ctx.Response.StatusCode      = 200;
         ctx.Response.ContentType     = "text/html; charset=utf-8";
         ctx.Response.ContentLength64 = bytes.Length;
+        // 列表是动态数据，必须每次重新拉取（否则上传/删除后看不到变化）
+        ctx.Response.AddHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        ctx.Response.AddHeader("Pragma", "no-cache");
+        ctx.Response.AddHeader("Expires", "0");
         await ctx.Response.OutputStream.WriteAsync(bytes);
         LogInfo($"列出目录: {rawPath}");
     }
