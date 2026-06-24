@@ -351,12 +351,22 @@ public class HttpFileServer : IDisposable
     {
         var decoded = HttpUtility.UrlDecode(userPath) ?? userPath;
         var rel     = decoded.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-        var combined = Path.GetFullPath(Path.Combine(_cfg.RootDir, rel));
-        var rootFull = Path.GetFullPath(_cfg.RootDir);
-        // 必须等于 rootFull 或在 rootFull 子目录下
+
+        // 规范化 root：去掉尾部分隔符（"C:\" 这种盘符根会保留反斜杠）
+        var rootFull = Path.GetFullPath(_cfg.RootDir)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (string.IsNullOrEmpty(rootFull))
+            rootFull = Path.GetPathRoot(Environment.CurrentDirectory)
+                ?? throw new InvalidOperationException("Cannot determine root path");
+
+        var combined = Path.GetFullPath(Path.Combine(rootFull, rel));
+
+        // 校验：必须等于 rootFull 本身（访问根目录），
+        // 或以 rootFull + 路径分隔符开头（访问子项）
         if (!combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase) &&
             !combined.StartsWith(rootFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
+            LogWarn($"路径越界拦截: url='{userPath}' rel='{rel}' root='{rootFull}' resolved='{combined}'");
             throw new UnauthorizedAccessException("Path traversal");
         }
         return combined;
@@ -490,13 +500,15 @@ public class HttpFileServer : IDisposable
     }
 
     private void LogInfo(string msg)  => Log(ToolsLogger.Source.Http, "INFO ", msg);
+    private void LogWarn(string msg)  => Log(ToolsLogger.Source.Http, "WARN ", msg);
     private void LogError(string msg) => Log(ToolsLogger.Source.Http, "ERROR", msg);
     private void Log(ToolsLogger.Source src, string level, string msg)
     {
         var prefix = level == "INFO " ? "" : level + " ";
         OnLog?.Invoke($"{prefix}{msg}");
-        if (level == "ERROR") ToolsLogger.Error(src, msg);
-        else                  ToolsLogger.Info(src, msg);
+        if      (level == "ERROR") ToolsLogger.Error(src, msg);
+        else if (level == "WARN ") ToolsLogger.Warn(src, msg);
+        else                       ToolsLogger.Info(src, msg);
     }
 }
 
