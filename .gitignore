@@ -1,0 +1,45 @@
+# Build results
+bin/
+obj/
+out/
+publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.cache
+*.tlog
+
+# Rider / IDEs
+.idea/
+
+# IDE-specific
+**/.trae/
+**/.vs/
+**/.idea/
+
+# Build artifacts in subfolders
+**/bin/
+**/obj/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.lock.json
+
+# Binaries
+*.dll
+*.exe
+*.pdb
+
+# Local user/runtime files
+command_history.txt
+rules.json
+*.log
+SessionControl_full.txt

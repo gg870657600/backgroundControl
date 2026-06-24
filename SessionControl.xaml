@@ -1,0 +1,409 @@
+<UserControl x:Class="backgroundControl.SessionControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:term="clr-namespace:Microsoft.Terminal.Wpf;assembly=Microsoft.Terminal.Wpf"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <!-- 基础按钮样式（带圆角） -->
+        <Style x:Key="BaseButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#005A9E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#004578"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#CCCCCC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 现代按钮（蓝色） -->
+        <Style x:Key="ModernButton" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Background" Value="#0078D4"/>
+        </Style>
+
+        <!-- 危险按钮（橙色） -->
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Background" Value="#D83B01"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#B13400"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 卡片样式 -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 输入框样式 -->
+        <Style TargetType="TextBox">
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="5,0"/>
+        </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="5,0"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,5,0,0"/>
+        </Style>
+
+        <!-- 面包屑按钮样式 -->
+        <Style x:Key="BreadcrumbButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#2C3E50"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}"
+                        BorderBrush="Transparent"
+                        BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#EAF2F8"/>
+                                <Setter Property="Foreground" Value="#0078D4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 面包屑分隔符样式（可选，用 TextBlock 显示 > 符号） -->
+        <Style x:Key="BreadcrumbSeparatorStyle" TargetType="TextBlock">
+            <Setter Property="Text" Value=">"/>
+            <Setter Property="Foreground" Value="#BDC3C7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="LeftColumn" Width="280"/>
+            <ColumnDefinition x:Name="SplitterColumn" Width="5"/>
+            <ColumnDefinition x:Name="RightColumn" Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧：远程文件浏览器 -->
+        <Border x:Name="FileManagerPanel" Grid.Column="0" Style="{StaticResource CardStyle}" Padding="12">
+            <StackPanel>
+                <TextBlock Text="📁 远程文件浏览器" FontWeight="Bold" FontSize="14" Margin="0,0,0,12" Foreground="#2C3E50"/>
+
+                <!-- 面包屑导航栏 -->
+                <WrapPanel x:Name="BreadcrumbPanel" Margin="0,0,0,8"/>
+
+                <!-- 文件/目录列表（美化行高、悬停、选中效果） -->
+                <ListView x:Name="FileListView" Height="350"
+                  SelectionMode="Extended"
+                  MouseDoubleClick="FileListView_MouseDoubleClick"
+                  AllowDrop="True"
+                  DragEnter="FileListView_DragEnter"
+                  DragOver="FileListView_DragOver"
+                  Drop="FileListView_Drop"
+                  BorderBrush="#E0E0E0" BorderThickness="1"
+                  Background="#FAFAFA">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Height" Value="28"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#E0F0FF"/>
+                                    <Setter Property="BorderBrush" Value="#0078D4"/>
+                                    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#F0F7FF"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="名称" Width="150" DisplayMemberBinding="{Binding Name}">
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="名称" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="大小" Width="70" DisplayMemberBinding="{Binding Size}">
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="大小" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="修改时间" Width="120" DisplayMemberBinding="{Binding ModifyTime, StringFormat=yyyy-MM-dd HH:mm}">
+                                <GridViewColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="修改时间" FontWeight="SemiBold" Foreground="#2C3E50"/>
+                                    </DataTemplate>
+                                </GridViewColumn.HeaderTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+
+                <!-- 保留原有的 CurrentPathTextBox（名称和位置不变） -->
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="当前路径：" Foreground="#555" VerticalAlignment="Center" FontSize="12"/>
+                    <TextBox x:Name="CurrentPathTextBox" Text="/" FontWeight="SemiBold" 
+                     Margin="5,0,0,0" Padding="4,2" Width="200" IsReadOnly="True"
+                     BorderThickness="1" Background="#FAFAFA" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- 操作按钮栏（美化按钮颜色） -->
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                    <Button Content="📤 上传" Width="70" Height="30" Click="UploadFiles_Click" Style="{StaticResource ModernButton}" Background="#4CAF50"/>
+                    <Button Content="📥 下载" Width="70" Height="30" Margin="8,0,0,0" Click="DownloadFile_Click" Style="{StaticResource ModernButton}" Background="#2196F3"/>
+                    <Button Content="🗑️ 删除" Width="70" Height="30" Margin="8,0,0,0" Click="DeleteFile_Click" Style="{StaticResource DangerButton}"/>
+                </StackPanel>
+
+                <!-- 进度条区域（保持原有名称和位置） -->
+                <StackPanel Margin="0,12,0,0" Visibility="Collapsed" x:Name="ProgressPanel">
+                    <TextBlock x:Name="ProgressText" Text="准备就绪" FontSize="11" Foreground="#555" Margin="0,0,0,4"/>
+                    <ProgressBar x:Name="TransferProgressBar" Height="6" Minimum="0" Maximum="100" Value="0" 
+                         Foreground="#0078D4" Background="#E0E0E0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="LightGray" Width="5" ResizeBehavior="PreviousAndNext"/>
+
+        <!-- 右侧：原内容（连接配置、自然语言指令、执行结果） -->
+        <Grid Grid.Column="2">
+            <!-- 原有 Grid 内容，保持不变 -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <!-- 1. 连接配置 -->
+            <Expander Grid.Row="0" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0" Padding="0">
+                <Expander.Header>
+                    <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
+                        <TextBlock Text="🔌 连接配置" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                    </Border>
+                </Expander.Header>
+                <Border Style="{StaticResource CardStyle}" Padding="15" Margin="0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="IP地址:" VerticalAlignment="Center" Margin="5,8" Foreground="#555"/>
+                        <TextBox x:Name="IpTextBox" Grid.Column="1" Width="150" Margin="5" Text="197.6.6.26"/>
+                        <TextBlock Text="用户名:" Grid.Column="2" VerticalAlignment="Center" Margin="5" Foreground="#555"/>
+                        <TextBox x:Name="UserTextBox" Grid.Column="3" Width="150" Margin="5" Text="root"/>
+
+                        <TextBlock Text="密码:" Grid.Row="1" VerticalAlignment="Center" Margin="5,8" Foreground="#555"/>
+                        <PasswordBox x:Name="PasswordBox" Grid.Row="1" Grid.Column="1" Width="150" Margin="5"/>
+                        <TextBlock Text="端口:" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="5" Foreground="#555"/>
+                        <TextBox x:Name="PortTextBox" Grid.Row="1" Grid.Column="3" Width="150" Margin="5" Text="22"/>
+
+                        <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="5,10,0,0">
+                            <Button x:Name="ConnectButton" Content="连接" Width="80" Click="ConnectButton_Click" Style="{StaticResource ModernButton}"/>
+                            <Button x:Name="DisconnectButton" Content="断开" Width="80" Margin="10,0,0,0" Click="DisconnectButton_Click" IsEnabled="False" Style="{StaticResource DangerButton}"/>
+                            <Border Background="#F8F9FA" CornerRadius="4" Padding="10,5" Margin="20,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="ConnectionStatus" Text="SSH未连接" Foreground="#E74C3C" FontWeight="SemiBold"/>
+                                    <TextBlock Text=" | " Margin="10,0" Foreground="#BDC3C7"/>
+                                    <TextBlock x:Name="TelnetStatus" Text="Telnet: 未登录" Foreground="#E74C3C" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Expander>
+
+            <!-- 2. 自然语言指令（编辑规则按钮移到标题栏） -->
+            <Expander Grid.Row="1" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0" Padding="0">
+                <Expander.Header>
+                    <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="⌨️ 自然语言指令" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                            <Button x:Name="EditRulesButton" Content="编辑规则" Width="80" Height="28" 
+                        Click="EditRulesButton_Click" 
+                        Style="{StaticResource ModernButton}" 
+                        Background="#6C757D"
+                        Margin="15,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Expander.Header>
+                <Border Style="{StaticResource CardStyle}" Padding="15" Margin="0">
+                    <StackPanel>
+                        <ComboBox x:Name="InputComboBox" IsEditable="True" Height="80" KeyDown="InputComboBox_KeyDown" FontSize="13"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button x:Name="SendButton" Content="📤 发送指令" Width="100" Click="SendButton_Click" IsEnabled="False" Style="{StaticResource ModernButton}"/>
+                            
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Expander>
+
+            <!-- 3. 终端 -->
+            <Expander Grid.Row="2" IsExpanded="True" Background="Transparent" BorderThickness="0" Padding="0">
+                <Expander.Header>
+                    <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
+                        
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="📟 终端" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/> 
+                            <Button x:Name="ClearButton" Content="🗑️ 清空输出" Width="100" Margin="10,0,0,0" Click="ClearButton_Click" Style="{StaticResource ModernButton}" Background="#6C757D"/>
+                            <Button x:Name="StopButton" Content="⏹️ 停止(Ctrl+C)" Width="120" Margin="10,0,0,0" Click="StopButton_Click" Style="{StaticResource DangerButton}" Background="#E67E22"/>
+                            <Button x:Name="CopyLogButton" Content="📄 复制日志" Width="100" Margin="10,0,0,0" Click="CopyAllLog_Click" Style="{StaticResource ModernButton}" Background="#2ECC71"/>
+                        </StackPanel>
+                    </Border>
+                </Expander.Header>
+                <Border Style="{StaticResource CardStyle}" Padding="0" Margin="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <!-- 搜索栏（默认隐藏，Ctrl+F 触发显示） -->
+                        <Border x:Name="SearchBar" Grid.Row="0" Background="#F8F9FA" 
+                                BorderBrush="#D0D0D0" BorderThickness="0,0,0,1"
+                                Padding="8,5" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="🔍" FontSize="14" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBox x:Name="SearchTextBox" Grid.Column="1" 
+                                         VerticalContentAlignment="Center" Padding="4,2"
+                                         BorderBrush="#D0D0D0" FontSize="13"
+                                         KeyDown="SearchTextBox_KeyDown"/>
+                                <TextBlock x:Name="SearchResultText" Grid.Column="2" 
+                                           Text="" FontSize="12" Foreground="#888"
+                                           VerticalAlignment="Center" Margin="8,0,5,0"
+                                           MinWidth="80"/>
+                                <Button x:Name="SearchPrevButton" Grid.Column="3" Content="▲" 
+                                        Width="28" Height="24" Margin="2,0" FontSize="11"
+                                        Click="SearchPrev_Click" Cursor="Hand"
+                                        Background="#E0E0E0" BorderThickness="0"/>
+                                <Button x:Name="SearchNextButton" Grid.Column="4" Content="▼" 
+                                        Width="28" Height="24" Margin="2,0" FontSize="11"
+                                        Click="SearchNext_Click" Cursor="Hand"
+                                        Background="#E0E0E0" BorderThickness="0"/>
+                                <Button x:Name="SearchCloseButton" Grid.Column="5" Content="✕" 
+                                        Width="28" Height="24" Margin="5,0,0,0" FontSize="12"
+                                        Click="SearchClose_Click" Cursor="Hand"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="#E74C3C" FontWeight="Bold"/>
+                            </Grid>
+                        </Border>
+                        <!-- 搜索结果面板（显示匹配行，关键词高亮黄色背景） -->
+                        <Border x:Name="SearchResultsPanel" Grid.Row="1" 
+                                Background="#FFFFFF" 
+                                BorderBrush="#D0D0D0" BorderThickness="0,0,0,1"
+                                MaxHeight="200" Visibility="Collapsed">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="SearchResultsList" Margin="4">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ContentControl Content="{Binding}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                        <!-- SSH 远程终端（连接后显示） -->
+                        <term:TerminalControl 
+                            x:Name="TerminalControl"
+                            Grid.Row="2"
+                            Visibility="Visible"
+                            VerticalAlignment="Stretch"
+                            HorizontalAlignment="Stretch"
+                            Margin="0" 
+                            PreviewKeyDown="TerminalControl_PreviewKeyDown"/>
+                        <!-- 搜索高亮叠加层（Popup 有独立 HWND，可覆盖 HwndHost） -->
+                        <Popup x:Name="SearchHighlightPopup"
+                               PlacementTarget="{Binding ElementName=TerminalControl}"
+                               Placement="Relative"
+                               AllowsTransparency="True"
+                               StaysOpen="True"
+                               IsOpen="False"
+                               PopupAnimation="None">
+                            <Canvas x:Name="HighlightCanvas" 
+                                    Background="Transparent"
+                                    IsHitTestVisible="False"
+                                    SnapsToDevicePixels="True"/>
+                        </Popup>
+                    </Grid>
+                </Border>
+            </Expander>
+        </Grid>
+    </Grid>
+
+</UserControl>

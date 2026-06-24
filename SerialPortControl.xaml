@@ -1,0 +1,119 @@
+﻿<UserControl x:Class="backgroundControl.SerialPortControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:backgroundControl"
+             xmlns:term="clr-namespace:Microsoft.Terminal.Wpf;assembly=Microsoft.Terminal.Wpf"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style x:Key="BaseButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernButton" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Background" Value="#0078D4"/>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Background" Value="#D83B01"/>
+        </Style>
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.1"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 串口配置 -->
+        <Expander Grid.Row="0" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0">
+            <Expander.Header>
+                <Border Background="White" CornerRadius="8" Padding="15">
+                    <TextBlock Text="🔌 串口配置" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                </Border>
+            </Expander.Header>
+            <Border Style="{StaticResource CardStyle}" Padding="15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="串口号：" VerticalAlignment="Center" Margin="5"/>
+                    <ComboBox x:Name="Cmb_PortName" Grid.Column="1" Margin="5" Width="120"/>
+
+                    <TextBlock Text="波特率：" Grid.Column="2" VerticalAlignment="Center" Margin="5"/>
+                    <ComboBox x:Name="Cmb_BaudRate" Grid.Column="3" Margin="5" Width="120"/>
+
+                    <TextBlock Text="数据位：" Grid.Row="1" VerticalAlignment="Center" Margin="5"/>
+                    <ComboBox x:Name="Cmb_DataBits" Grid.Row="1" Grid.Column="1" Margin="5" Width="120"/>
+
+                    <TextBlock Text="停止位：" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="5"/>
+                    <ComboBox x:Name="Cmb_StopBits" Grid.Row="1" Grid.Column="3" Margin="5" Width="120"/>
+
+                    <TextBlock Text="校验位：" Grid.Row="2" VerticalAlignment="Center" Margin="5"/>
+                    <ComboBox x:Name="Cmb_Parity" Grid.Row="2" Grid.Column="1" Margin="5" Width="120"/>
+
+                    <StackPanel Grid.Row="3" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button x:Name="Btn_Open" Content="打开串口" Style="{StaticResource ModernButton}" Click="Btn_Open_Click"/>
+                        <Button x:Name="Btn_Close" Content="关闭串口" Style="{StaticResource DangerButton}" Click="Btn_Close_Click" IsEnabled="False"/>
+                        <Border Margin="20,0,0,0" Background="#F8F9FA" Padding="8,4" CornerRadius="4">
+                            <TextBlock x:Name="Txt_Status" Text="串口已关闭" Foreground="Red"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Expander>
+
+        <!-- 终端显示 -->
+        <Expander Grid.Row="2" IsExpanded="True">
+            <Expander.Header>
+                <Border Background="White" CornerRadius="8" Padding="15">
+                    <TextBlock Text="📟 串口终端" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                </Border>
+            </Expander.Header>
+            <Border Style="{StaticResource CardStyle}" Padding="0">
+                <term:TerminalControl 
+                    x:Name="TerminalControl"
+                    Visibility="Visible"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch"
+                    Margin="0" PreviewKeyDown="TerminalControl_PreviewKeyDown"/>
+            </Border>
+        </Expander>
+    </Grid>
+</UserControl>

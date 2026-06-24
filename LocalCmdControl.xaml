@@ -1,0 +1,11 @@
+﻿<UserControl x:Class="backgroundControl.LocalCmdControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+             xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms">
+    <Grid>
+        <wfi:WindowsFormsHost x:Name="CmdHost">
+            <wf:Panel x:Name="CmdPanel" />
+        </wfi:WindowsFormsHost>
+    </Grid>
+</UserControl>
