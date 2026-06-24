@@ -565,7 +565,7 @@ private void ToolsButton_Click(object sender, RoutedEventArgs e)
 
 **验证**：ToolsWindow 能弹出，三个 Tab 能显示。
 
-### 阶段 2：HTTP 文件服务（~4h）
+### 阶段 2：HTTP 文件服务（~4h）✅ 已完成
 1. 创建 `Tools/HttpFileServer.cs`，含路由分发
 2. 实现 GET 目录列表（HTML 模板嵌入 C# 字符串）
 3. 实现 GET 文件下载（含 Range 支持）
@@ -574,7 +574,7 @@ private void ToolsButton_Click(object sender, RoutedEventArgs e)
 6. 实现 `BasicAuthHandler.cs`
 7. 创建 `Views/HttpFileServerControl.xaml(.cs)`，绑定 HttpFileServer 事件
 
-**验证**：PC2 浏览器访问 PC1，能浏览、下载、上传文件。
+**验证**：构建 0 errors。需手动跑：dotnet run → 点 🔧 工具 → 选根目录 → 启动 → 浏览器访问 localhost:8080 → 浏览/下载/上传/删除。
 
 ### 阶段 3：FTP 服务（~2h）
 1. 创建 `Tools/FtpServerHost.cs`，封装 FluentFTP.Server
