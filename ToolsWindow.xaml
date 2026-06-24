@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:backgroundControl.Views"
         mc:Ignorable="d"
         Title="工具" 
         Height="600" Width="800"
@@ -23,8 +24,9 @@
 
         <TabControl Margin="8" Background="#F0F2F5" BorderThickness="0">
             <TabItem Header="📁 文件服务 (HTTP)">
-                <TextBlock Text="HTTP 文件服务 — 阶段 2 实施" Foreground="#7F8C8D"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+                <views:HttpFileServerControl x:Name="HttpCtrl" 
+                    OnStateChanged="HttpCtrl_StateChanged"
+                    OnLogAppended="HttpCtrl_LogAppended"/>
             </TabItem>
             <TabItem Header="📂 FTP 服务">
                 <TextBlock Text="FTP 服务 — 阶段 3 实施" Foreground="#7F8C8D"
