@@ -1,4 +1,4 @@
-﻿<Window x:Class="backgroundControl.MainWindow"
+<Window x:Class="backgroundControl.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -59,6 +59,11 @@
                 <Button x:Name="Btn_NewSerial" Content="新建串口" 
                     Style="{StaticResource ModernButton}"
                     Click="AddSerialSession_Click"/>
+
+                <Button x:Name="Btn_Tools" Content="🔧 工具"
+                    Style="{StaticResource ModernButton}"
+                    Click="ToolsButton_Click"
+                    ToolTip="HTTP 文件服务 / FTP 服务 / iperf3 打流"/>
             </StackPanel>
         </Border>
 

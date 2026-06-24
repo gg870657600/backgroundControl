@@ -1,0 +1,39 @@
+<Window x:Class="backgroundControl.ToolsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="工具" 
+        Height="600" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="#F0F2F5">
+    <DockPanel>
+        <!-- 底部状态栏 -->
+        <Border DockPanel.Dock="Bottom" Background="#2C3E50" Padding="10,5">
+            <TextBlock Foreground="White" FontSize="12">
+                <Run Text="HTTP: " />
+                <Run x:Name="HttpStatusRun" Text="已停止" Foreground="#E74C3C" FontWeight="Bold" />
+                <Run Text="    FTP: " />
+                <Run x:Name="FtpStatusRun"  Text="已停止" Foreground="#E74C3C" FontWeight="Bold" />
+                <Run Text="    iperf: " />
+                <Run x:Name="IperfStatusRun" Text="已停止" Foreground="#E74C3C" FontWeight="Bold" />
+            </TextBlock>
+        </Border>
+
+        <TabControl Margin="8" Background="#F0F2F5" BorderThickness="0">
+            <TabItem Header="📁 文件服务 (HTTP)">
+                <TextBlock Text="HTTP 文件服务 — 阶段 2 实施" Foreground="#7F8C8D"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+            </TabItem>
+            <TabItem Header="📂 FTP 服务">
+                <TextBlock Text="FTP 服务 — 阶段 3 实施" Foreground="#7F8C8D"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+            </TabItem>
+            <TabItem Header="📊 打流测试 (iperf3)">
+                <TextBlock Text="iperf3 打流 — 阶段 4 实施" Foreground="#7F8C8D"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

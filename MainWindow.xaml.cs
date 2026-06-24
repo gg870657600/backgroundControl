@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -151,6 +151,20 @@ namespace backgroundControl
         private void AddSerialSession_Click(object sender, RoutedEventArgs e)
         {
             AddNewSerialSession();
+        }
+
+        // 工具弹窗：单例非模态
+        private ToolsWindow? _toolsWindow;
+        private void ToolsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_toolsWindow == null || !_toolsWindow.IsVisible)
+            {
+                _toolsWindow = new ToolsWindow();
+                _toolsWindow.Owner = this;
+                _toolsWindow.Closed += (_, _) => _toolsWindow = null;
+            }
+            _toolsWindow.Show();
+            _toolsWindow.Activate();
         }
 
         // 关闭标签
