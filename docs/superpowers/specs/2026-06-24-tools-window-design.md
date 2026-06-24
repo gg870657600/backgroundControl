@@ -51,7 +51,7 @@ MainWindow 顶栏
 | `ToolsWindow.xaml(.cs)` | 弹窗主窗口 | 80 |
 | `Tools/ToolsConfig.cs` | 配置模型 + 读写 | 100 |
 | `Tools/HttpFileServer.cs` | HTTP 服务实现 | 300 |
-| `Tools/FtpServerHost.cs` | FTP 服务封装 (FluentFTP.Server) | 150 |
+| `Tools/FtpServerHost.cs` | FTP 服务实现（**自写**，零依赖） | 500 |
 | `Tools/IperfRunner.cs` | iperf3 进程封装 | 200 |
 | `Tools/IperfLocator.cs` | 释放嵌入的 iperf3.exe | 50 |
 | `Tools/BasicAuthHandler.cs` | HTTP Basic Auth 校验 | 30 |
@@ -61,7 +61,7 @@ MainWindow 顶栏
 | `Views/IperfControl.xaml(.cs)` | iperf Tab UI | 250 |
 | `tools/iperf3.exe` | 嵌入式资源（实际二进制） | - |
 
-合计 **~1550 行新代码**（含 XAML）。
+合计 **~1900 行新代码**（含 XAML）。
 
 ### 依赖关系
 
@@ -77,6 +77,10 @@ IperfRunner    ───┘            │
 ```
 
 各服务**完全独立**，可单独启停，单个崩溃不影响其他。
+
+### NuGet 依赖
+
+**无新增**（HTTP 用 `HttpListener`，FTP 自写，iperf3 用进程）。
 
 ## Design Details
 
@@ -222,16 +226,18 @@ public class HttpFileServer : IDisposable
 - **认证**：除 `/` 的 GET 列出、文件下载外，POST/DELETE 必须 Basic Auth
 - **错误响应**：404 返回简单 HTML 页面，500 返回纯文本错误信息
 
-### 3. FtpServerHost
+### 3. FtpServerHost（自写，零依赖）
 
 **核心类**：
 
 ```csharp
 public class FtpServerHost : IDisposable
 {
-    private FtpServer? _server;     // FluentFTP.Server.FtpServer
+    private TcpListener? _controlListener;
     private readonly FtpConfig _cfg;
+    private CancellationTokenSource? _cts;
     private bool _running;
+    private readonly List<FtpClientSession> _sessions = new();
 
     public event Action<string>? OnLog;
     public event Action<bool>?   OnState;
@@ -242,16 +248,91 @@ public class FtpServerHost : IDisposable
     public void Stop();
     public void Dispose();
 }
+
+internal class FtpClientSession
+{
+    public TcpClient Control { get; set; }      // 控制连接
+    public TcpListener? DataListener { get; set; }  // 被动模式数据端口
+    public NetworkStream? DataStream { get; set; }
+    public string CurrentDir { get; set; } = "/";
+    public string Username { get; set; } = "";
+    public bool Authenticated { get; set; }
+    public bool IsAscii { get; set; } = false;
+    public long RestartOffset { get; set; } = 0;
+    public string PendingRename { get; set; } = "";
+}
 ```
 
-**关键设计**：
-- **用户**：根据 `FtpConfig` 构造 `FtpUser` 列表
-- **被动端口范围**：`_cfg.PassiveStart` 到 `_cfg.PassiveEnd`，需要在防火墙放行
-- **根目录限制**：库本身支持 `RootPath` 限制在 `FtpServerOptions` 中
-- **日志订阅**：`server.Log += (s, e) => OnLog?.Invoke(e.Message)`
-- **生命周期**：所有用户操作在 `Task.Run` 中跑，停止时 `server.Stop()`
+**实现的 FTP 命令**（最小可用集）：
 
-**依赖**：`<PackageReference Include="FluentFTP.Server" Version="2.0.0" />`
+| 命令 | 说明 | 必需 |
+|---|---|---|
+| `USER` | 用户名 | ✅ |
+| `PASS` | 密码 | ✅ |
+| `QUIT` | 退出 | ✅ |
+| `PWD` / `XPWD` | 当前目录 | ✅ |
+| `CWD` / `XCWD` | 切换目录 | ✅ |
+| `CDUP` / `XCUP` | 上级目录 | ✅ |
+| `LIST` / `NLST` | 目录列表 | ✅ |
+| `RETR` | 下载文件 | ✅ |
+| `STOR` | 上传文件 | ✅ |
+| `DELE` | 删除文件 | ✅ |
+| `MKD` / `XMKD` | 建目录 | ✅ |
+| `RMD` / `XRMD` | 删目录 | ✅ |
+| `TYPE` | 设置 ASCII/Binary | ✅ |
+| `PASV` | 被动模式（开数据端口） | ✅ |
+| `PORT` | 主动模式（连客户端端口） | ✅ |
+| `SIZE` | 文件大小 | ✅ |
+| `REST` | 重传偏移（断点续传） | ⭐ 推荐 |
+| `NOOP` | 心跳 | ✅ |
+| `SYST` | 系统标识 | ✅ |
+| `FEAT` | 功能列表 | ✅ |
+| `OPTS UTF8 ON` | 启用 UTF-8 | ⭐ 推荐 |
+
+**不支持的命令**：ABOR（中断）、APPE（追加）、STOU（唯一文件名）、MLSD/MLST（机器友好列表）。
+
+**被动模式实现**：
+- 从 `PassiveStart~PassiveEnd` 范围内循环取一个端口
+- 新建 `TcpListener` 监听该端口
+- LIST/RETR/STOR 前 `AcceptTcpClient()` 等待客户端连入
+- 传输完关闭 listener
+
+**路径沙箱**（与 HTTP 共用 `ResolveSafePath`）：
+```csharp
+string ResolveSafePath(string userPath)
+{
+    var combined = Path.GetFullPath(Path.Combine(_cfg.RootDir, userPath.TrimStart('/')));
+    var rootFull = Path.GetFullPath(_cfg.RootDir) + Path.DirectorySeparatorChar;
+    if (!combined.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+        throw new UnauthorizedAccessException("Path traversal detected");
+    return combined;
+}
+```
+
+**响应码规范**（RFC 959）：
+- `220` 服务就绪
+- `331` 用户名 OK，需要密码
+- `230` 登录成功
+- `530` 未登录
+- `550` 文件/目录不存在
+- `226` 传输完成
+- `150` 打开数据连接
+- `425` 无法打开数据连接
+- `421` 服务关闭
+
+**数据连接复用规则**（重要）：
+- 一次 PASV 只能用于一次数据传输（LIST/RETR/STOR）
+- 传输完成后立即关闭数据 socket 和 listener
+- 下次传输需重新 PASV
+
+**生命周期**：
+- 每个客户端连接一个 `Task.Run(FtpClientSession.ProcessAsync)`
+- 主 listener 接受后立即 `AcceptTcpClient()` 等下一个（不阻塞）
+- 服务停止时 `_cts.Cancel()` + 关闭所有 session
+
+**配置**（从 `FtpConfig` 读）：
+- `cfg.Username` / `cfg.Password`：单用户
+- `cfg.AllowAnonymous`：true 时 `USER=anonymous`、`PASS=任意邮箱` 通过
 
 ### 4. IperfRunner
 
@@ -476,7 +557,7 @@ private void ToolsButton_Click(object sender, RoutedEventArgs e)
 按依赖顺序，**4 个阶段**逐步实施：
 
 ### 阶段 1：基础设施（~3h）
-1. 添加 NuGet 包：`FluentFTP.Server`
+1. ~~添加 NuGet 包：`FluentFTP.Server`~~ **取消**（FTP 改自写，无新增依赖）
 2. 创建 `Tools/ToolsConfig.cs`，含 JSON 序列化
 3. 创建 `Tools/ToolsLogger.cs`，含静态事件
 4. 创建 `Tools/IperfLocator.cs`，准备 iperf3.exe 资源
