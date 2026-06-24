@@ -254,9 +254,10 @@ public class HttpFileServer : IDisposable
         LogInfo($"上传完成: {savedCount} 个文件 → {targetDir} ({namesText})");
 
         // 浏览器上传完返回到当前目录的 HTML
-        var redirectPath = targetDir.Substring(_cfg.RootDir.Length).Replace('\\', '/').TrimStart('/');
-        if (string.IsNullOrEmpty(redirectPath)) redirectPath = "/";
-        ctx.Response.Redirect($"/{redirectPath}");
+        var subPath = targetDir.Substring(_cfg.RootDir.Length).Replace('\\', '/').TrimStart('/');
+        // 根目录 → "/"（避免拼出 "//"）；子目录 → "/sub/dir"
+        var location = string.IsNullOrEmpty(subPath) ? "/" : "/" + subPath;
+        ctx.Response.Redirect(location);
     }
 
     // ==================== 响应生成 ====================
