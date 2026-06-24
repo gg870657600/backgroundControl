@@ -623,7 +623,13 @@ internal static class MultipartParser
             if (b == boundary[pos])
             {
                 pos++;
-                if (pos == boundary.Length) return;
+                if (pos == boundary.Length)
+                {
+                    // 消费掉 boundary 行尾的 CRLF（或仅 LF），避免被 ReadLine 当成空 header 终止解析
+                    if (r.PeekChar() == '\r') r.ReadByte();
+                    if (r.PeekChar() == '\n') r.ReadByte();
+                    return;
+                }
             }
             else
             {
