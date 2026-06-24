@@ -306,6 +306,16 @@ public class HttpFileServer : IDisposable
         ctx.Response.AddHeader("Content-Range", $"bytes {start}-{end}/{total}");
         ctx.Response.ContentLength64 = length;
 
+        // ?download=1 强制下载（弹保存对话框），否则浏览器内嵌预览
+        var forceDownload = ctx.Request.QueryString["download"] == "1";
+        if (forceDownload)
+        {
+            // RFC 5987 编码文件名（支持中文）
+            var fileName = Path.GetFileName(localPath);
+            ctx.Response.AddHeader("Content-Disposition",
+                $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
+        }
+
         using var fs = File.OpenRead(localPath);
         fs.Seek(start, SeekOrigin.Begin);
         var buf = new byte[81920];
@@ -456,7 +466,7 @@ public class HttpFileServer : IDisposable
                           $"<td class=\"size\">{FormatSize(f.Length)}</td>" +
                           $"<td class=\"size\">{f.LastWriteTime:yyyy-MM-dd HH:mm}</td>" +
                           $"<td class=\"actions\">" +
-                          $"<a class=\"dl\" href=\"{HtmlTemplate.Escape(href)}\">⬇ 下载</a>" +
+                          $"<a class=\"dl\" href=\"{HtmlTemplate.Escape(href)}?download=1\">⬇ 下载</a>" +
                           $"<form class=\"delete-form\" method=\"post\" action=\"/__delete\" onsubmit=\"event.preventDefault();if(confirm('删除 {HtmlTemplate.Escape(f.Name)}？')){{fetch('{HtmlTemplate.Escape(href)}',{{method:'DELETE'}}).then(()=>location.reload())}}\">" +
                           $"<button class=\"delete-btn\" type=\"submit\">🗑 删除</button></form>" +
                           $"</td></tr>");
