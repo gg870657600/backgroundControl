@@ -111,7 +111,8 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
             TxtUrl.Foreground = System.Windows.Media.Brushes.Green;
             TxtPort.IsEnabled   = false;
             TxtRoot.IsEnabled   = false;
-            BtnStart.IsEnabled  = false;
+            BtnStart.Visibility = Visibility.Collapsed;
+            BtnStop.Visibility  = Visibility.Visible;
             BtnStop.IsEnabled   = true;
         }
         catch (Exception ex)
@@ -133,10 +134,12 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
 
     private void OnRunningChanged(bool running)
     {
-        TxtPort.IsEnabled  = !running;
-        TxtRoot.IsEnabled  = !running;
-        BtnStart.IsEnabled = !running;
-        BtnStop.IsEnabled  = running;
+        TxtPort.IsEnabled   = !running;
+        TxtRoot.IsEnabled   = !running;
+        BtnStart.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
+        BtnStop.Visibility  = running ? Visibility.Visible : Visibility.Collapsed;
+        BtnStart.IsEnabled  = !running;
+        BtnStop.IsEnabled   = running;
 
         if (!running)
         {

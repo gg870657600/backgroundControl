@@ -364,19 +364,19 @@ public class HttpFileServer : IDisposable
         var decoded = HttpUtility.UrlDecode(userPath) ?? userPath;
         var rel     = decoded.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
 
-        // 规范化 root：去掉尾部分隔符（"C:\" 这种盘符根会保留反斜杠）
-        var rootFull = Path.GetFullPath(_cfg.RootDir)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        // 确保 root 以分隔符结尾，这样 Path.Combine/GetFullPath 在盘符根（"E:\"）上行为一致
+        var rootFull = Path.GetFullPath(_cfg.RootDir);
+        if (!rootFull.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            rootFull += Path.DirectorySeparatorChar;
         if (string.IsNullOrEmpty(rootFull))
             rootFull = Path.GetPathRoot(Environment.CurrentDirectory)
                 ?? throw new InvalidOperationException("Cannot determine root path");
 
         var combined = Path.GetFullPath(Path.Combine(rootFull, rel));
 
-        // 校验：必须等于 rootFull 本身（访问根目录），
-        // 或以 rootFull + 路径分隔符开头（访问子项）
+        // rootFull 已有尾部分隔符，无需再加
         if (!combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase) &&
-            !combined.StartsWith(rootFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            !combined.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
         {
             LogWarn($"路径越界拦截: url='{userPath}' rel='{rel}' root='{rootFull}' resolved='{combined}'");
             throw new UnauthorizedAccessException("Path traversal");
