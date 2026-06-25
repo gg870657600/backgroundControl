@@ -23,6 +23,21 @@ public partial class TelnetControl : IDisposable
         InitializeComponent();
     }
 
+    private void TogglePassword_Click(object sender, RoutedEventArgs e)
+    {
+        var btn = (System.Windows.Controls.Button)sender;
+        if (PasswordBox.PasswordChar == '\0')
+        {
+            PasswordBox.PasswordChar = '●';
+            btn.Content = "👁";
+        }
+        else
+        {
+            PasswordBox.PasswordChar = '\0';
+            btn.Content = "🙈";
+        }
+    }
+
     private async void ConnectButton_Click(object sender, RoutedEventArgs e)
     {
         var host = HostTextBox.Text.Trim();

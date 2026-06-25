@@ -262,7 +262,10 @@
                         <TextBox x:Name="UserTextBox" Grid.Column="3" Width="150" Margin="5" Text="root"/>
 
                         <TextBlock Text="密码:" Grid.Row="1" VerticalAlignment="Center" Margin="5,8" Foreground="#555"/>
-                        <PasswordBox x:Name="PasswordBox" Grid.Row="1" Grid.Column="1" Width="150" Margin="5"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                            <PasswordBox x:Name="PasswordBox" Width="120"/>
+                            <Button x:Name="TogglePasswordBtn" Content="👁" Width="26" Height="24" Padding="0" Cursor="Hand" Background="Transparent" BorderThickness="0" Click="TogglePassword_Click"/>
+                        </StackPanel>
                         <TextBlock Text="端口:" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="5" Foreground="#555"/>
                         <TextBox x:Name="PortTextBox" Grid.Row="1" Grid.Column="3" Width="150" Margin="5" Text="22"/>
 
