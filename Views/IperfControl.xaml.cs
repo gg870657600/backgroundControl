@@ -41,7 +41,6 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         TxtHost.IsEnabled = isClient;
         TxtDuration.IsEnabled = isClient;
         TxtParallel.IsEnabled = isClient;
-        CbProtocol.IsEnabled = isClient;
         TxtBandwidth.IsEnabled = isClient;
         LblBandwidth.Visibility = isClient && CbProtocol.SelectedIndex == 1
             ? Visibility.Visible : Visibility.Collapsed;
