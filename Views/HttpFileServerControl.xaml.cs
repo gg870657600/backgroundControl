@@ -26,6 +26,13 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
     public event Action<bool>?   OnStateChanged;     // 透传到 ToolsWindow 底部状态栏
     public event Action<string>? OnLogAppended;      // 透传到统一日志
 
+    public void StopService()
+    {
+        _server?.Stop();
+        _server?.Dispose();
+        _server = null;
+    }
+
     public HttpFileServerControl()
     {
         InitializeComponent();

@@ -21,6 +21,14 @@ public partial class FtpServerControl : System.Windows.Controls.UserControl
     public event Action<bool>?   OnStateChanged;
     public event Action<string>? OnLogAppended;
 
+    public void StopService()
+    {
+        try { _server?.Stop(); }
+        catch { }
+        _server?.Dispose();
+        _server = null;
+    }
+
     public FtpServerControl()
     {
         InitializeComponent();

@@ -26,6 +26,13 @@ public partial class IperfControl : System.Windows.Controls.UserControl
     public event Action<bool>?   OnStateChanged;
     public event Action<string>? OnLogAppended;
 
+    public void StopService()
+    {
+        _runner?.Stop();
+        _runner?.Dispose();
+        _runner = null;
+    }
+
     public IperfControl()
     {
         InitializeComponent();

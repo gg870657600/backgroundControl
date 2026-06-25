@@ -14,6 +14,12 @@ public partial class ToolsWindow : Window
     public ToolsWindow()
     {
         InitializeComponent();
+        Closed += (_, _) =>
+        {
+            HttpCtrl.StopService();
+            FtpCtrl.StopService();
+            IperfCtrl.StopService();
+        };
     }
 
     private void HttpCtrl_StateChanged(bool running)
