@@ -21,6 +21,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using WinSCP;
+using backgroundControl.Tools;
 
 namespace backgroundControl
 {
@@ -262,6 +263,15 @@ namespace backgroundControl
         #endregion
 
         #region SSH 连接
+        public void ConnectWithCredentials(string ip, int port, string username, string password)
+        {
+            IpTextBox.Text = ip;
+            PortTextBox.Text = port.ToString();
+            UserTextBox.Text = username;
+            PasswordBox.Password = password;
+            ConnectSshWithPassword(ip, username, password);
+        }
+
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
             string ip = IpTextBox.Text.Trim();
@@ -310,6 +320,8 @@ namespace backgroundControl
                         DisconnectButton.IsEnabled = true;
                         SendButton.IsEnabled = true;
                     });
+
+                    SshHistoryManager.RecordConnection(targetIp, port, username, password);
 
                 }
 

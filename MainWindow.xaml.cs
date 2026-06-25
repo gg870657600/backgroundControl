@@ -8,6 +8,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Threading;
+using backgroundControl.Tools;
 
 namespace backgroundControl
 {
@@ -67,6 +68,16 @@ namespace backgroundControl
             {
                 _hookId = SetWindowsHookEx(WH_KEYBOARD_LL, _hookProc, GetModuleHandle(curModule.ModuleName), 0);
             }
+
+            SshHistoryManager.HistoryChanged += OnHistoryChanged;
+        }
+
+        private void OnHistoryChanged()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_sidebarOpen) RefreshHistoryList();
+            });
         }
 
         /// <summary>
@@ -165,6 +176,65 @@ namespace backgroundControl
             }
             _toolsWindow.Show();
             _toolsWindow.Activate();
+        }
+
+        // ---------- 侧边栏 ----------
+        private bool _sidebarOpen;
+
+        private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+        {
+            _sidebarOpen = !_sidebarOpen;
+            SidebarColumn.Width = _sidebarOpen ? new GridLength(200) : new GridLength(0);
+            if (_sidebarOpen) RefreshHistoryList();
+        }
+
+        private void RefreshHistoryList()
+        {
+            var entries = SshHistoryManager.Load();
+            HistoryList.ItemsSource = entries;
+        }
+
+        private void HistoryList_DoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (HistoryList.SelectedItem is SshHistoryEntry entry)
+            {
+                var sessionControl = new SessionControl();
+                var session = new TabItemViewModel
+                {
+                    Header = entry.Ip,
+                    Content = sessionControl
+                };
+                sessionControl.DataContext = session;
+                SessionItems.Add(session);
+                SessionTabControl.SelectedItem = session;
+
+                try
+                {
+                    var password = SshHistoryManager.DecryptPassword(entry.Password);
+                    sessionControl.ConnectWithCredentials(entry.Ip, entry.Port, entry.Username, password);
+                }
+                catch
+                {
+                    // 解密失败，让用户手动输入
+                }
+            }
+        }
+
+        private void HistoryList_Delete_Click(object sender, RoutedEventArgs e)
+        {
+            if (HistoryList.SelectedItem is SshHistoryEntry entry)
+            {
+                var list = SshHistoryManager.Load();
+                list.RemoveAll(e => string.Equals(e.Ip, entry.Ip, StringComparison.OrdinalIgnoreCase));
+                SshHistoryManager.Save(list);
+                RefreshHistoryList();
+            }
+        }
+
+        private void HistoryList_ClearAll_Click(object sender, RoutedEventArgs e)
+        {
+            SshHistoryManager.Save(new System.Collections.Generic.List<SshHistoryEntry>());
+            RefreshHistoryList();
         }
 
         // 关闭标签
