@@ -22,6 +22,7 @@ public partial class TelnetControl : IDisposable
     public TelnetControl()
     {
         InitializeComponent();
+        Loaded += (_, _) => backgroundControl.Tools.TerminalFontZoom.Instance.Register(TerminalControl, Dispatcher);
     }
 
     private void TogglePassword_Click(object sender, RoutedEventArgs e)

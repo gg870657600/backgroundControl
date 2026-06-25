@@ -20,6 +20,7 @@ namespace backgroundControl
         {
             InitializeComponent();
             InitSerialOption();
+            Loaded += (_, _) => backgroundControl.Tools.TerminalFontZoom.Instance.Register(TerminalControl, Dispatcher);
         }
 
         // 所有用户输入通过此方法发送到串口，不再本地回显

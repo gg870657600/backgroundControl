@@ -413,7 +413,8 @@
                             VerticalAlignment="Stretch"
                             HorizontalAlignment="Stretch"
                             Margin="0" 
-                            PreviewKeyDown="TerminalControl_PreviewKeyDown"/>
+                            PreviewKeyDown="TerminalControl_PreviewKeyDown"
+                            />
                         <!-- 搜索高亮叠加层（Popup 有独立 HWND，可覆盖 HwndHost） -->
                         <Popup x:Name="SearchHighlightPopup"
                                PlacementTarget="{Binding ElementName=TerminalControl}"

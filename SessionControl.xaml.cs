@@ -88,10 +88,19 @@ namespace backgroundControl
         private readonly SemaphoreSlim _switchLock = new SemaphoreSlim(1, 1);
         public bool IsSwitching { get; private set; }
 
+        // Ctrl+滚轮缩放终端字号
+        private int _terminalFontSize = 12;
+
+        private void EnsureMouseWheelHook()
+        {
+            backgroundControl.Tools.TerminalFontZoom.Instance.Register(TerminalControl, Dispatcher);
+        }
+
 
         public SessionControl()
         {
             InitializeComponent();
+            Loaded += (_, _) => EnsureMouseWheelHook();
             PasswordBox.Password = "andisat";
             UpdateTelnetStatus(false);
             _currentEnv = ShellEnvironment.Unknown;
@@ -220,7 +229,7 @@ namespace backgroundControl
             }
             e.Handled = true;
         }
-    
+
 
         #region 历史记录 & 规则
         private void LoadHistory()
