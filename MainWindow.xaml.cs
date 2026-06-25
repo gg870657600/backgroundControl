@@ -126,6 +126,23 @@ namespace backgroundControl
         private void AddNewSshSession()
         {
             var sessionControl = new SessionControl();
+
+            // 预填上次成功连接的 SSH 信息
+            try
+            {
+                var lastSsh = SshHistoryManager.Load().FirstOrDefault(e => e.ConnectionType == "SSH");
+                if (lastSsh != null)
+                {
+                    sessionControl.IpTextBox.Text = lastSsh.Ip;
+                    sessionControl.PortTextBox.Text = lastSsh.Port.ToString();
+                    sessionControl.UserTextBox.Text = lastSsh.Username;
+                    var pwd = SshHistoryManager.DecryptPassword(lastSsh.Password);
+                    sessionControl.PasswordBox.Password = pwd;
+                    sessionControl.PasswordVisibleBox.Text = pwd;
+                }
+            }
+            catch { }
+
             var newSession = new TabItemViewModel
             {
                 Header = $"SSH 会话 {sshSessionCounter++}",
