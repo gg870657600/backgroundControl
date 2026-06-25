@@ -16,7 +16,7 @@
                   CanUserDeleteRows="True" Margin="0,0,0,10">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="关键词" Width="*" Binding="{Binding Keywords}"/>
-                <DataGridTextColumn Header="命令" Width="*" Binding="{Binding Command}"/>
+                <DataGridTextColumn Header="telnet私有命令" Width="*" Binding="{Binding Command}"/>
             </DataGrid.Columns>
         </DataGrid>
 

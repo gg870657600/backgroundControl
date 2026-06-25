@@ -1,5 +1,4 @@
-using FuzzySharp;
-using Microsoft.Terminal.Wpf;
+﻿using Microsoft.Terminal.Wpf;
 using Microsoft.Win32;  // 用于文件选择对话框
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
@@ -1001,31 +1000,32 @@ namespace backgroundControl
 
             string normalized = trimmed.Replace(" ", "").ToLowerInvariant();
 
-            // 精确匹配
-            var exactRule = _intentRules.FirstOrDefault(r => r.NormalizedKeywords.Contains(normalized));
-            if (exactRule != null) return exactRule.Command;
-
-            // 包含匹配（选择最长关键词）
-            var containRule = _intentRules
-                .SelectMany(rule => rule.NormalizedKeywords.Select(kw => new { Rule = rule, Keyword = kw }))
-                .Where(x => normalized.Contains(x.Keyword))
-                .OrderByDescending(x => x.Keyword.Length)
-                .FirstOrDefault()?.Rule;
-            if (containRule != null) return containRule.Command;
-
-            // 模糊匹配
-            if (_intentRules.Any())
-            {
-                var allKeywords = _intentRules.SelectMany(r => r.NormalizedKeywords).ToList();
-                var bestMatch = FuzzySharp.Process.ExtractOne(normalized, allKeywords);
-                if (bestMatch.Score >= 70)
+            // 统一打分：精确匹配 100，包含匹配 60+关键词长度
+            var scored = _intentRules
+                .Select(rule => new
                 {
-                    var matchedRule = _intentRules.First(r => r.NormalizedKeywords.Contains(bestMatch.Value));
-                    string rawCommand = matchedRule.Command;
-                    // ... 设备类型调整
-                    return rawCommand;
-                }
-            }
+                    Rule = rule,
+                    Matches = rule.NormalizedKeywords
+                        .Where(kw => kw.Length > 0)
+                        .Select(kw => normalized == kw ? 100
+                                   : normalized.Contains(kw) ? 60 + kw.Length
+                                   : 0)
+                        .Where(s => s > 0)
+                        .ToList()
+                })
+                .Where(x => x.Matches.Count > 0)
+                .Select(x => new
+                {
+                    x.Rule,
+                    BestScore = x.Matches.Max(),
+                    TotalScore = x.Matches.Sum()
+                })
+                .OrderByDescending(x => x.BestScore)
+                .ThenByDescending(x => x.TotalScore)
+                .ToList();
+
+            var best = scored.FirstOrDefault();
+            if (best != null) return best.Rule.Command;
 
             return "UNKNOWN";
         }
