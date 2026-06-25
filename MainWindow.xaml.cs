@@ -152,6 +152,20 @@ namespace backgroundControl
             SessionTabControl.SelectedItem = tab;
         }
 
+        private void AddNewTelnetSession()
+        {
+            var telnetControl = new Views.TelnetControl();
+            var tab = new TabItemViewModel
+            {
+                Header = "Telnet 会话",
+                Content = telnetControl,
+                IsClosable = true
+            };
+            telnetControl.DataContext = tab;
+            SessionItems.Add(tab);
+            SessionTabControl.SelectedItem = tab;
+        }
+
         // 按钮：新建 SSH
         private void AddSessionButton_Click(object sender, RoutedEventArgs e)
         {
@@ -162,6 +176,12 @@ namespace backgroundControl
         private void AddSerialSession_Click(object sender, RoutedEventArgs e)
         {
             AddNewSerialSession();
+        }
+
+        // 按钮：新建 Telnet
+        private void AddTelnetSession_Click(object sender, RoutedEventArgs e)
+        {
+            AddNewTelnetSession();
         }
 
         // 工具弹窗：单例非模态
@@ -251,6 +271,8 @@ namespace backgroundControl
                     local.Dispose();
                 else if (tabItemVM.Content is SerialPortControl serial)
                     serial.Dispose();
+                else if (tabItemVM.Content is Views.TelnetControl telnet)
+                    telnet.Dispose();
 
                 SessionItems.Remove(tabItemVM);
             }
@@ -267,6 +289,8 @@ namespace backgroundControl
                     local.Dispose();
                 else if (tabItemVM.Content is SerialPortControl serial)
                     serial.Dispose();
+                else if (tabItemVM.Content is Views.TelnetControl telnet)
+                    telnet.Dispose();
 
                 SessionItems.Remove(tabItemVM);
             }
@@ -287,6 +311,8 @@ namespace backgroundControl
                     local.Dispose();
                 else if (item.Content is SerialPortControl serial)
                     serial.Dispose();
+                else if (item.Content is Views.TelnetControl telnet)
+                    telnet.Dispose();
             }
             base.OnClosed(e);
         }

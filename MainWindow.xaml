@@ -101,9 +101,13 @@
                             Style="{StaticResource AddButtonStyle}"
                             Click="AddSessionButton_Click"/>
 
-                    <Button x:Name="Btn_NewSerial" Content="新建串口" 
-                        Style="{StaticResource ModernButton}"
-                        Click="AddSerialSession_Click"/>
+            <Button x:Name="Btn_NewSerial" Content="新建串口" 
+                Style="{StaticResource ModernButton}"
+                Click="AddSerialSession_Click"/>
+
+            <Button x:Name="Btn_NewTelnet" Content="新建Telnet"
+                Style="{StaticResource ModernButton}"
+                Click="AddTelnetSession_Click"/>
 
                     <Button x:Name="Btn_Tools" Content="🔧 工具"
                         Style="{StaticResource ModernButton}"
