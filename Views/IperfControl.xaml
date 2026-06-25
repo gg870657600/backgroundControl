@@ -117,13 +117,12 @@
                     <Ellipse Width="10" Height="10" Fill="#E74C3C" Margin="16,0,4,0" VerticalAlignment="Center"/>
                     <TextBlock Text="接收 (Mbps)" Foreground="#34495E" FontSize="12" VerticalAlignment="Center"/>
                     <Ellipse Width="10" Height="10" Fill="#3498DB" Margin="16,0,4,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="发送 (Mbps)" Foreground="#34495E" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtChartLabel" Text="发送 (Mbps)" Foreground="#34495E" FontSize="12" VerticalAlignment="Center"/>
                     <TextBlock x:Name="TxtChartMax" Text="" Margin="20,0,0,0" Foreground="#7F8C8D" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
                 <Border Grid.Row="1" Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="2">
                     <Canvas x:Name="ChartCanvas" ClipToBounds="True" SizeChanged="ChartCanvas_SizeChanged">
-                        <Polyline x:Name="ChartRecvPoly" Stroke="#E74C3C" StrokeThickness="2"/>
-                        <Polyline x:Name="ChartSendPoly" Stroke="#3498DB" StrokeThickness="2"/>
+                        <Polyline x:Name="ChartLine" Stroke="#3498DB" StrokeThickness="2"/>
                     </Canvas>
                 </Border>
             </Grid>

@@ -17,11 +17,11 @@ public partial class IperfControl : System.Windows.Controls.UserControl
     private readonly List<IperfIntervalData> _intervals = new();
 
     // 曲线图数据
-    private readonly List<double> _chartRecv = new();
-    private readonly List<double> _chartSend = new();
+    private readonly List<double> _chartData = new();
     private readonly List<System.Windows.Shapes.Ellipse> _chartDots = new();
     private double _chartMaxMbps = 1.0;
     private int _iperfDuration;
+    private bool _isClientMode;
 
     public event Action<bool>?   OnStateChanged;
     public event Action<string>? OnLogAppended;
@@ -115,11 +115,13 @@ public partial class IperfControl : System.Windows.Controls.UserControl
                 var udp = CbProtocol.SelectedIndex == 1;
                 var bw = udp ? TxtBandwidth.Text.Trim() : "";
                 _iperfDuration = dur;
+                _isClientMode = true;
                 _runner.StartClient(host, port, dur, par, udp, bw, 1);
             }
             else
             {
                 _iperfDuration = 0;
+                _isClientMode = false;
                 _runner.StartServer(port);
             }
 
@@ -168,12 +170,11 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         AppendLog(logLine);
 
         // 推点到曲线
-        var recvMbps = iv.ReceiverBitsPerSec / 1_000_000.0;
-        var sendMbps = iv.BitsPerSec / 1_000_000.0;
-        _chartRecv.Add(recvMbps);
-        _chartSend.Add(sendMbps);
-        if (recvMbps > _chartMaxMbps) _chartMaxMbps = recvMbps;
-        if (sendMbps > _chartMaxMbps) _chartMaxMbps = sendMbps;
+        var mbps = _isClientMode
+            ? iv.BitsPerSec / 1_000_000.0
+            : iv.ReceiverBitsPerSec / 1_000_000.0;
+        _chartData.Add(mbps);
+        if (mbps > _chartMaxMbps) _chartMaxMbps = mbps;
         UpdateChart();
     }
 
@@ -187,59 +188,59 @@ public partial class IperfControl : System.Windows.Controls.UserControl
 
     private void ResetChart()
     {
-        _chartRecv.Clear();
-        _chartSend.Clear();
+        _chartData.Clear();
         _chartMaxMbps = 1.0;
-        if (TxtChartMax != null) TxtChartMax.Text = "";
+        if (TxtChartMax != null) TxtChartMax.Text = "准备…";
+        if (TxtChartLabel != null)
+            TxtChartLabel.Text = _isClientMode ? "发送 (Mbps)" : "接收 (Mbps)";
+        foreach (var dot in _chartDots) ChartCanvas.Children.Remove(dot);
         _chartDots.Clear();
-        UpdateChart();
+        if (ChartLine != null)
+        {
+            ChartLine.Points = new PointCollection();
+            ChartLine.Stroke = _isClientMode
+                ? System.Windows.Media.Brushes.DodgerBlue
+                : System.Windows.Media.Brushes.LimeGreen;
+        }
     }
 
     private void UpdateChart()
     {
-        if (ChartRecvPoly == null || ChartSendPoly == null || ChartCanvas == null) return;
+        if (ChartLine == null || ChartCanvas == null) return;
         var w = ChartCanvas.ActualWidth;
         var h = ChartCanvas.ActualHeight;
         if (w <= 0 || h <= 0) return;
-        var n = _chartRecv.Count;
+        var n = _chartData.Count;
         if (n == 0)
         {
-            ChartRecvPoly.Points = new PointCollection();
-            ChartSendPoly.Points = new PointCollection();
+            ChartLine.Points = new PointCollection();
             foreach (var dot in _chartDots) ChartCanvas.Children.Remove(dot);
             _chartDots.Clear();
             return;
         }
 
-        // X 轴：client 模式按总时长铺满；server 模式按数据点数铺满
         var xMax = _iperfDuration > 0 ? _iperfDuration : n;
         var xStep = w / Math.Max(1, xMax - 1);
-        // Y 轴：按当前峰值 +20% 留白
         var yMax = Math.Max(0.1, _chartMaxMbps) * 1.2;
 
-        var recv = new PointCollection();
-        var send = new PointCollection();
+        var pts = new PointCollection();
         for (int i = 0; i < n; i++)
         {
             double x = i * xStep;
-            double yR = h - Math.Min(1.0, _chartRecv[i] / yMax) * h;
-            double yS = h - Math.Min(1.0, _chartSend[i] / yMax) * h;
-            recv.Add(new System.Windows.Point(x, yR));
-            send.Add(new System.Windows.Point(x, yS));
+            double y = h - Math.Min(1.0, _chartData[i] / yMax) * h;
+            pts.Add(new System.Windows.Point(x, y));
         }
-        ChartRecvPoly.Points = recv;
-        ChartSendPoly.Points = send;
+        ChartLine.Points = pts;
 
-        // 清除旧点
         foreach (var dot in _chartDots) ChartCanvas.Children.Remove(dot);
         _chartDots.Clear();
 
-        // 给每个数据点画一个红色圆点，hover 显示该秒接收/发送速率
+        var label = _isClientMode ? "发送" : "接收";
         const double dotR = 4;
         for (int i = 0; i < n; i++)
         {
             double x = i * xStep;
-            double yR = h - Math.Min(1.0, _chartRecv[i] / yMax) * h;
+            double y = h - Math.Min(1.0, _chartData[i] / yMax) * h;
             var dot = new Ellipse
             {
                 Width = dotR * 2,
@@ -247,11 +248,11 @@ public partial class IperfControl : System.Windows.Controls.UserControl
                 Fill = System.Windows.Media.Brushes.Red,
                 Stroke = System.Windows.Media.Brushes.White,
                 StrokeThickness = 1,
-                ToolTip = $"第 {i + 1} 秒\n↓ 接收  {_chartRecv[i]:F1} Mbps\n↑ 发送  {_chartSend[i]:F1} Mbps",
+                ToolTip = $"第 {i + 1} 秒\n{label}  {_chartData[i]:F1} Mbps",
             };
             ToolTipService.SetInitialShowDelay(dot, 0);
             Canvas.SetLeft(dot, x - dotR);
-            Canvas.SetTop(dot, yR - dotR);
+            Canvas.SetTop(dot, y - dotR);
             ChartCanvas.Children.Add(dot);
             _chartDots.Add(dot);
         }
