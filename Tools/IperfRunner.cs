@@ -14,6 +14,7 @@ public class IperfRunner : IDisposable
     private CancellationTokenSource? _cts;
     private readonly StringBuilder _stdout = new();
     private bool _isClient;
+    private IperfIntervalData? _lastData;
 
     public bool IsRunning => _proc is { HasExited: false };
 
@@ -50,6 +51,7 @@ public class IperfRunner : IDisposable
     {
         Stop();
         _stdout.Clear();
+        _lastData = null;
 
         var exe = IperfLocator.GetIperfExePath();
         _cts = new CancellationTokenSource();
@@ -152,29 +154,47 @@ public class IperfRunner : IDisposable
         if (!m.Success) return;
 
         var bw = ParseBitsPerSec(m.Groups[5].Value, m.Groups[6].Value);
-        // iperf3 stdout 末尾的 sender/receiver 汇总行带 "sender" / "receiver" 关键字
+        // iperf3 末尾的 sender/receiver 汇总行带 "sender" / "receiver" 关键字
+        // 中间 interval 行不带标签，只有一个 bandwidth 值
         var isSenderLine   = line.Contains("sender",   StringComparison.OrdinalIgnoreCase);
         var isReceiverLine = line.Contains("receiver", StringComparison.OrdinalIgnoreCase);
 
-        // 中间 interval 行：client 模式 = receiver 实时，server 模式 = sender 实时
-        // 末尾汇总行：按关键字覆盖对应字段
-        var data = new IperfIntervalData
+        IperfIntervalData data;
+        if (isSenderLine || isReceiverLine)
         {
-            BitsPerSec         = isSenderLine   ? bw : (_isClient ? 0 : bw),
-            ReceiverBitsPerSec = isReceiverLine ? bw : (_isClient ? bw : 0),
-        };
-
-        var jm = JitterRegex.Match(line);
-        if (jm.Success) data.JitterMs = double.Parse(jm.Groups[1].Value);
-
-        var lm = LossRegex.Match(line);
-        if (lm.Success)
+            // 末尾汇总行：覆盖对应字段，另一字段和 jitter/loss 保留自上一次中间行
+            var prev = _lastData;
+            data = new IperfIntervalData
+            {
+                BitsPerSec         = isSenderLine   ? bw : (prev?.BitsPerSec         ?? 0),
+                ReceiverBitsPerSec = isReceiverLine ? bw : (prev?.ReceiverBitsPerSec ?? 0),
+                JitterMs           = prev?.JitterMs    ?? 0,
+                LossPercent        = prev?.LossPercent ?? 0,
+            };
+        }
+        else
         {
-            data.LostPackets  = long.Parse(lm.Groups[1].Value);
-            data.TotalPackets = long.Parse(lm.Groups[2].Value);
-            data.LossPercent  = double.Parse(lm.Groups[3].Value);
+            // 中间 interval 行：client 视角 = client→server 方向 = sender 实时
+            //                  server 视角 = client→server 方向 = server 接收实时
+            data = new IperfIntervalData
+            {
+                BitsPerSec         = _isClient ? bw : 0,
+                ReceiverBitsPerSec = _isClient ? 0  : bw,
+            };
+
+            var jm = JitterRegex.Match(line);
+            if (jm.Success) data.JitterMs = double.Parse(jm.Groups[1].Value);
+
+            var lm = LossRegex.Match(line);
+            if (lm.Success)
+            {
+                data.LostPackets  = long.Parse(lm.Groups[1].Value);
+                data.TotalPackets = long.Parse(lm.Groups[2].Value);
+                data.LossPercent  = double.Parse(lm.Groups[3].Value);
+            }
         }
 
+        _lastData = data;
         OnInterval?.Invoke(data);
     }
 
