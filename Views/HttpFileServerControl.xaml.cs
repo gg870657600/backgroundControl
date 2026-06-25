@@ -100,7 +100,7 @@ public partial class HttpFileServerControl : System.Windows.Controls.UserControl
         try
         {
             _server.StartAsync();
-            TxtUrl.Text    = $"http://localhost:{port}  |  http://{GetLocalIP()}:{port}";
+            TxtUrl.Text    = $"http://{GetLocalIP()}:{port}";
             TxtUrl.Foreground = System.Windows.Media.Brushes.Green;
             TxtPort.IsEnabled   = false;
             TxtRoot.IsEnabled   = false;

@@ -72,7 +72,7 @@ public partial class FtpServerControl : System.Windows.Controls.UserControl
             _server.OnState += running => Dispatcher.Invoke(() => OnRunningChanged(running));
             _server.Start();
 
-            TxtUrl.Text = $"ftp://localhost:{port}  |  ftp://{GetLocalIP()}:{port}";
+            TxtUrl.Text = $"ftp://{GetLocalIP()}:{port}";
             TxtUrl.Foreground = System.Windows.Media.Brushes.Green;
             OnStateChanged?.Invoke(true);
         }
