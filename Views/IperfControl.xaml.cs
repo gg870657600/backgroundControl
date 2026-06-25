@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using backgroundControl.Tools;
 
 using MessageBox = System.Windows.MessageBox;
@@ -18,6 +19,7 @@ public partial class IperfControl : System.Windows.Controls.UserControl
     // 曲线图数据
     private readonly List<double> _chartRecv = new();
     private readonly List<double> _chartSend = new();
+    private readonly List<System.Windows.Shapes.Ellipse> _chartDots = new();
     private double _chartMaxMbps = 1.0;
     private int _iperfDuration;
 
@@ -189,6 +191,7 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         _chartSend.Clear();
         _chartMaxMbps = 1.0;
         if (TxtChartMax != null) TxtChartMax.Text = "";
+        _chartDots.Clear();
         UpdateChart();
     }
 
@@ -203,6 +206,8 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         {
             ChartRecvPoly.Points = new PointCollection();
             ChartSendPoly.Points = new PointCollection();
+            foreach (var dot in _chartDots) ChartCanvas.Children.Remove(dot);
+            _chartDots.Clear();
             return;
         }
 
@@ -224,6 +229,32 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         }
         ChartRecvPoly.Points = recv;
         ChartSendPoly.Points = send;
+
+        // 清除旧点
+        foreach (var dot in _chartDots) ChartCanvas.Children.Remove(dot);
+        _chartDots.Clear();
+
+        // 给每个数据点画一个红色圆点，hover 显示该秒接收/发送速率
+        const double dotR = 4;
+        for (int i = 0; i < n; i++)
+        {
+            double x = i * xStep;
+            double yR = h - Math.Min(1.0, _chartRecv[i] / yMax) * h;
+            var dot = new Ellipse
+            {
+                Width = dotR * 2,
+                Height = dotR * 2,
+                Fill = System.Windows.Media.Brushes.Red,
+                Stroke = System.Windows.Media.Brushes.White,
+                StrokeThickness = 1,
+                ToolTip = $"第 {i + 1} 秒\n↓ 接收  {_chartRecv[i]:F1} Mbps\n↑ 发送  {_chartSend[i]:F1} Mbps",
+            };
+            ToolTipService.SetInitialShowDelay(dot, 0);
+            Canvas.SetLeft(dot, x - dotR);
+            Canvas.SetTop(dot, yR - dotR);
+            ChartCanvas.Children.Add(dot);
+            _chartDots.Add(dot);
+        }
 
         if (TxtChartMax != null)
             TxtChartMax.Text = $"峰值 {_chartMaxMbps:F1} Mbps";
