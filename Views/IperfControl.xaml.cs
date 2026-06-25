@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using backgroundControl.Tools;
 
 using MessageBox = System.Windows.MessageBox;
@@ -13,6 +14,12 @@ public partial class IperfControl : System.Windows.Controls.UserControl
     private IperfRunner? _runner;
     private readonly ToolsConfig _cfg;
     private readonly List<IperfIntervalData> _intervals = new();
+
+    // 曲线图数据
+    private readonly List<double> _chartRecv = new();
+    private readonly List<double> _chartSend = new();
+    private double _chartMaxMbps = 1.0;
+    private int _iperfDuration;
 
     public event Action<bool>?   OnStateChanged;
     public event Action<string>? OnLogAppended;
@@ -105,13 +112,16 @@ public partial class IperfControl : System.Windows.Controls.UserControl
 
                 var udp = CbProtocol.SelectedIndex == 1;
                 var bw = udp ? TxtBandwidth.Text.Trim() : "";
+                _iperfDuration = dur;
                 _runner.StartClient(host, port, dur, par, udp, bw, 1);
             }
             else
             {
+                _iperfDuration = 0;
                 _runner.StartServer(port);
             }
 
+            ResetChart();
             TxtStatus.Text = "运行中…";
             TxtStatus.Foreground = System.Windows.Media.Brushes.Green;
             TxtRealtime.Text = "";
@@ -149,26 +159,79 @@ public partial class IperfControl : System.Windows.Controls.UserControl
     {
         _intervals.Add(iv);
         var idx = _intervals.Count;
-        TxtRealtime.Text = $"[{idx}s]  ↓{iv.ReceiverMbps} Mbps  ↑{iv.SenderMbps} Mbps";
+        var logLine = $"[{idx,3}s]  ↓{iv.ReceiverMbps} Mbps  ↑{iv.SenderMbps} Mbps";
+        if (iv.JitterMs > 0)
+            logLine += $"   抖动 {iv.JitterMs:F3}ms   丢包 {iv.LossPercent:F2}%";
+        TxtRealtime.Text = logLine;
+        AppendLog(logLine);
+
+        // 推点到曲线
+        var recvMbps = iv.ReceiverBitsPerSec / 1_000_000.0;
+        var sendMbps = iv.BitsPerSec / 1_000_000.0;
+        _chartRecv.Add(recvMbps);
+        _chartSend.Add(sendMbps);
+        if (recvMbps > _chartMaxMbps) _chartMaxMbps = recvMbps;
+        if (sendMbps > _chartMaxMbps) _chartMaxMbps = sendMbps;
+        UpdateChart();
     }
 
     private void OnFinalReceived(IperfFinalResult fr)
     {
         TxtResult.Text = $"发送 {fr.SenderMbps:F1} / 接收 {fr.ReceiverMbps:F1} Mbps";
         TxtRealtime.Text = $"完成  ↓{fr.ReceiverMbps:F1} Mbps  ↑{fr.SenderMbps:F1} Mbps";
-
         AppendLog("");
-        AppendLog("═══ 每秒带宽 ═══");
-        for (int i = 0; i < _intervals.Count; i++)
+        AppendLog($"═══ 完成  ↓{fr.ReceiverMbps:F1} Mbps  ↑{fr.SenderMbps:F1} Mbps ═══");
+    }
+
+    private void ResetChart()
+    {
+        _chartRecv.Clear();
+        _chartSend.Clear();
+        _chartMaxMbps = 1.0;
+        if (TxtChartMax != null) TxtChartMax.Text = "";
+        UpdateChart();
+    }
+
+    private void UpdateChart()
+    {
+        if (ChartRecvPoly == null || ChartSendPoly == null || ChartCanvas == null) return;
+        var w = ChartCanvas.ActualWidth;
+        var h = ChartCanvas.ActualHeight;
+        if (w <= 0 || h <= 0) return;
+        var n = _chartRecv.Count;
+        if (n == 0)
         {
-            var iv = _intervals[i];
-            var line = $"  {i + 1,3}s  ↓{iv.ReceiverMbps} Mbps  ↑{iv.SenderMbps} Mbps";
-            if (iv.JitterMs > 0)
-                line += $"  抖动 {iv.JitterMs:F3}ms  丢包 {iv.LossPercent:F2}%";
-            AppendLog(line);
+            ChartRecvPoly.Points = new PointCollection();
+            ChartSendPoly.Points = new PointCollection();
+            return;
         }
-        AppendLog("════════════════");
-        AppendLog($"总计  ↓{fr.ReceiverMbps:F1} Mbps  ↑{fr.SenderMbps:F1} Mbps");
+
+        // X 轴：client 模式按总时长铺满；server 模式按数据点数铺满
+        var xMax = _iperfDuration > 0 ? _iperfDuration : n;
+        var xStep = w / Math.Max(1, xMax - 1);
+        // Y 轴：按当前峰值 +20% 留白
+        var yMax = Math.Max(0.1, _chartMaxMbps) * 1.2;
+
+        var recv = new PointCollection();
+        var send = new PointCollection();
+        for (int i = 0; i < n; i++)
+        {
+            double x = i * xStep;
+            double yR = h - Math.Min(1.0, _chartRecv[i] / yMax) * h;
+            double yS = h - Math.Min(1.0, _chartSend[i] / yMax) * h;
+            recv.Add(new System.Windows.Point(x, yR));
+            send.Add(new System.Windows.Point(x, yS));
+        }
+        ChartRecvPoly.Points = recv;
+        ChartSendPoly.Points = send;
+
+        if (TxtChartMax != null)
+            TxtChartMax.Text = $"峰值 {_chartMaxMbps:F1} Mbps";
+    }
+
+    private void ChartCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        UpdateChart();
     }
 
     private void SetControlsEnabled(bool enabled)

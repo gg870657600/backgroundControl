@@ -24,7 +24,7 @@ public class IperfRunner : IDisposable
     public void StartServer(int port)
     {
         KillIperfProcesses();
-        StartProcess($"-s -1 -p {port} -i 1");
+        StartProcess($"-s -1 -p {port} -i 1 --forceflush");
     }
 
     private static void KillIperfProcesses()
