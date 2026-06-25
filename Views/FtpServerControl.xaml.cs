@@ -36,8 +36,6 @@ public partial class FtpServerControl : System.Windows.Controls.UserControl
 
         TxtPort.Text       = _cfg.Ftp.Port.ToString();
         TxtRoot.Text       = _cfg.Ftp.RootDir;
-        TxtPasvStart.Text  = _cfg.Ftp.PassiveStart.ToString();
-        TxtPasvEnd.Text    = _cfg.Ftp.PassiveEnd.ToString();
         ChkAnonymous.IsChecked = _cfg.Ftp.AllowAnonymous;
 
         AppendLog("就绪。请配置参数后点击 启动。");
@@ -59,17 +57,11 @@ public partial class FtpServerControl : System.Windows.Controls.UserControl
     {
         if (!int.TryParse(TxtPort.Text, out var port) || port < 1 || port > 65535)
         { MessageBox.Show("端口无效", "配置错误", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-        if (!int.TryParse(TxtPasvStart.Text, out var pasvStart) || pasvStart < 1 || pasvStart > 65535)
-        { MessageBox.Show("被动端口起无效", "配置错误", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-        if (!int.TryParse(TxtPasvEnd.Text, out var pasvEnd) || pasvEnd < pasvStart || pasvEnd > 65535)
-        { MessageBox.Show("被动端口止必须 ≥ 起，且 ≤ 65535", "配置错误", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         if (!System.IO.Directory.Exists(TxtRoot.Text))
         { MessageBox.Show($"根目录不存在: {TxtRoot.Text}", "配置错误", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
 
         _cfg.Ftp.Port           = port;
         _cfg.Ftp.RootDir        = TxtRoot.Text;
-        _cfg.Ftp.PassiveStart   = pasvStart;
-        _cfg.Ftp.PassiveEnd     = pasvEnd;
         _cfg.Ftp.AllowAnonymous = ChkAnonymous.IsChecked == true;
         try { _cfg.Save(); } catch { }
 
@@ -106,8 +98,6 @@ public partial class FtpServerControl : System.Windows.Controls.UserControl
     {
         TxtPort.IsEnabled      = !running;
         TxtRoot.IsEnabled      = !running;
-        TxtPasvStart.IsEnabled = !running;
-        TxtPasvEnd.IsEnabled   = !running;
         ChkAnonymous.IsEnabled = !running;
         BtnStart.IsEnabled     = !running;
         BtnStop.IsEnabled      = running;

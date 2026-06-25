@@ -58,17 +58,20 @@ public static class SshHistoryManager
 
     public static event Action? HistoryChanged;
 
-    public static void RecordConnection(string ip, int port, string username, string password)
+    public static void RecordConnection(string ip, int port, string username, string password, string connectionType = "SSH")
     {
         var list = Load();
 
         var existing = list.FirstOrDefault(e =>
-            string.Equals(e.Ip, ip, StringComparison.OrdinalIgnoreCase));
+            string.Equals(e.Ip, ip, StringComparison.OrdinalIgnoreCase) &&
+            e.ConnectionType == connectionType &&
+            e.Port == port);
         if (existing != null)
             list.Remove(existing);
 
         list.Insert(0, new SshHistoryEntry
         {
+            ConnectionType = connectionType,
             Ip       = ip,
             Port     = port,
             Username = username,

@@ -73,7 +73,7 @@ public class FtpConfig
     public int    Port            { get; set; } = 2121;
     public string RootDir         { get; set; } = @"C:\";
     public int    PassiveStart    { get; set; } = 50000;
-    public int    PassiveEnd      { get; set; } = 50100;
+    public int    PassiveEnd      { get; set; } = 51000;
     /// <summary>FTP 是否允许匿名登录（用户名 anonymous，密码任意）</summary>
     public bool   AllowAnonymous  { get; set; } = true;
 }

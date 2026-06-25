@@ -6,6 +6,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using backgroundControl.Tools;
 using Microsoft.Terminal.Wpf;
 
 namespace backgroundControl.Views;
@@ -25,17 +26,27 @@ public partial class TelnetControl : IDisposable
 
     private void TogglePassword_Click(object sender, RoutedEventArgs e)
     {
-        var btn = (System.Windows.Controls.Button)sender;
-        if (PasswordBox.PasswordChar == '\0')
+        if (PasswordBox.Visibility == Visibility.Visible)
         {
-            PasswordBox.PasswordChar = '●';
-            btn.Content = "👁";
+            PasswordVisibleBox.Text = PasswordBox.Password;
+            PasswordBox.Visibility = Visibility.Collapsed;
+            PasswordVisibleBox.Visibility = Visibility.Visible;
         }
         else
         {
-            PasswordBox.PasswordChar = '\0';
-            btn.Content = "🙈";
+            PasswordBox.Password = PasswordVisibleBox.Text;
+            PasswordVisibleBox.Visibility = Visibility.Collapsed;
+            PasswordBox.Visibility = Visibility.Visible;
         }
+    }
+
+    public async void ConnectWithCredentials(string host, int port, string username, string password)
+    {
+        HostTextBox.Text = host;
+        PortTextBox.Text = port.ToString();
+        UserTextBox.Text = username;
+        PasswordBox.Password = password;
+        await DoConnectAsync(host, port, username, password);
     }
 
     private async void ConnectButton_Click(object sender, RoutedEventArgs e)
@@ -43,8 +54,13 @@ public partial class TelnetControl : IDisposable
         var host = HostTextBox.Text.Trim();
         if (!int.TryParse(PortTextBox.Text, out var port)) port = 23;
         var username = UserTextBox.Text.Trim();
-        var password = PasswordBox.Password;
+        var password = PasswordBox.Visibility == Visibility.Visible
+            ? PasswordBox.Password : PasswordVisibleBox.Text;
+        await DoConnectAsync(host, port, username, password);
+    }
 
+    private async Task DoConnectAsync(string host, int port, string username, string password)
+    {
         try
         {
             _tcpClient = new TcpClient();
@@ -60,6 +76,8 @@ public partial class TelnetControl : IDisposable
 
             if (!string.IsNullOrEmpty(username))
                 await AutoLoginAsync(username, password);
+
+            SshHistoryManager.RecordConnection(host, port, username, password, "Telnet");
 
             var tab = DataContext as TabItemViewModel;
             Dispatcher.Invoke(() =>

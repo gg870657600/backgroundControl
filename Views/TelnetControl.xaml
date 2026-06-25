@@ -46,18 +46,17 @@
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Telnet 配置 -->
         <Expander Grid.Row="0" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0">
             <Expander.Header>
-                <Border Background="White" CornerRadius="8" Padding="15">
-                    <TextBlock Text="🌐 Telnet 配置" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
+                    <TextBlock Text="🔌 Telnet 配置" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
                 </Border>
             </Expander.Header>
-            <Border Style="{StaticResource CardStyle}" Padding="15">
+            <Border Style="{StaticResource CardStyle}" Padding="15" Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -71,24 +70,27 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="主机：" VerticalAlignment="Center" Margin="5"/>
-                    <TextBox x:Name="HostTextBox" Grid.Column="1" Margin="5" Text="197.5.1.2"/>
+                    <TextBlock Text="IP地址:" VerticalAlignment="Center" Margin="5,8" Foreground="#555"/>
+                    <TextBox x:Name="HostTextBox" Grid.Column="1" Width="150" Margin="5" Text="197.5.1.2"/>
+                    <TextBlock Text="用户名:" Grid.Column="2" VerticalAlignment="Center" Margin="5" Foreground="#555"/>
+                    <TextBox x:Name="UserTextBox" Grid.Column="3" Width="150" Margin="5" Text="admin"/>
 
-                    <TextBlock Text="端口：" Grid.Column="2" VerticalAlignment="Center" Margin="5"/>
-                    <TextBox x:Name="PortTextBox" Grid.Column="3" Margin="5" Width="120" Text="23"/>
+                    <TextBlock Text="密码:" Grid.Row="1" VerticalAlignment="Center" Margin="5,8" Foreground="#555"/>
+                    <Border Grid.Row="1" Grid.Column="1" Margin="5" Width="150" BorderBrush="#ABADB3" BorderThickness="1">
+                        <Grid>
+                        <PasswordBox x:Name="PasswordBox" Password="admin@andi" BorderThickness="0"/>
+                        <TextBox x:Name="PasswordVisibleBox" Text="admin@andi" Visibility="Collapsed" VerticalContentAlignment="Center" BorderThickness="0"/>
+                        <Button x:Name="TogglePasswordBtn" Content="👁" Width="22"
+                                HorizontalAlignment="Right" Margin="0,0,2,0"
+                                Padding="0" Cursor="Hand" Background="Transparent"
+                                BorderThickness="0" Click="TogglePassword_Click"/>
+                        </Grid></Border>
+                    <TextBlock Text="端口:" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="5" Foreground="#555"/>
+                    <TextBox x:Name="PortTextBox" Grid.Row="1" Grid.Column="3" Width="150" Margin="5" Text="23"/>
 
-                    <TextBlock Text="用户名：" Grid.Row="1" VerticalAlignment="Center" Margin="5"/>
-                    <TextBox x:Name="UserTextBox" Grid.Row="1" Grid.Column="1" Margin="5" Text="admin"/>
-
-                    <TextBlock Text="密码：" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="5"/>
-                    <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Horizontal" Margin="5">
-                        <PasswordBox x:Name="PasswordBox" Width="100" Password="admin@andi"/>
-                        <Button x:Name="TogglePasswordBtn" Content="👁" Width="26" Height="24" Padding="0" Cursor="Hand" Background="Transparent" BorderThickness="0" Click="TogglePassword_Click"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="0,10,0,0">
-                        <Button x:Name="ConnectButton" Content="连接" Style="{StaticResource ModernButton}" Click="ConnectButton_Click"/>
-                        <Button x:Name="DisconnectButton" Content="断开" Style="{StaticResource DangerButton}" Click="DisconnectButton_Click" IsEnabled="False"/>
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="5,10,0,0">
+                        <Button x:Name="ConnectButton" Content="连接" Width="80" Style="{StaticResource ModernButton}" Click="ConnectButton_Click"/>
+                        <Button x:Name="DisconnectButton" Content="断开" Width="80" Margin="10,0,0,0" Style="{StaticResource DangerButton}" Click="DisconnectButton_Click" IsEnabled="False"/>
                         <Border Margin="20,0,0,0" Background="#F8F9FA" Padding="8,4" CornerRadius="4">
                             <TextBlock x:Name="StatusText" Text="未连接" Foreground="Red"/>
                         </Border>
@@ -98,9 +100,9 @@
         </Expander>
 
         <!-- 终端 -->
-        <Expander Grid.Row="2" IsExpanded="True">
+        <Expander Grid.Row="1" IsExpanded="True">
             <Expander.Header>
-                <Border Background="White" CornerRadius="8" Padding="15">
+                <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
                     <TextBlock Text="💻 Telnet 终端" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
                 </Border>
             </Expander.Header>

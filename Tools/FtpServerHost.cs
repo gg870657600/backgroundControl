@@ -172,7 +172,7 @@ internal class FtpClientSession
                 catch (Exception ex) { _host.LogInfo($"FTP 客户端断开: {ex.Message}"); break; }
                 if (n == 0) break;
 
-                lineBuf.Append(Encoding.ASCII.GetString(byteBuf, 0, n));
+                lineBuf.Append(Encoding.UTF8.GetString(byteBuf, 0, n));
                 while (true)
                 {
                     var s = lineBuf.ToString();
@@ -198,7 +198,10 @@ internal class FtpClientSession
     {
         var parts = line.Split(' ', 2);
         var cmd  = parts[0].ToUpperInvariant();
-        var arg  = parts.Length > 1 ? parts[1] : "";
+        var arg  = parts.Length > 1 ? parts[1].Trim() : "";
+
+        var remoteEp = _control.Client.RemoteEndPoint?.ToString() ?? "?";
+        _host.LogInfo($"[{remoteEp}] CMD: {line}");
 
         try
         {
@@ -279,6 +282,7 @@ internal class FtpClientSession
         {
             var newPath = ResolvePath(arg);
             if (!Directory.Exists(newPath)) { await SendAsync("550 Directory not found."); return; }
+            _host.LogInfo($"CWD arg='{arg}' resolved='{newPath}' oldDir='{_currentDir}'");
             _currentDir = ToFtpPath(newPath);
             await SendAsync($"250 CWD successful. \"{_currentDir}\"");
         }
@@ -399,7 +403,8 @@ internal class FtpClientSession
         try
         {
             var path = ResolvePath(arg);
-            if (!File.Exists(path)) { await SendAsync("550 File not found."); return; }
+            _host.LogInfo($"DELE arg='{arg}' resolved='{path}' currentDir='{_currentDir}'");
+            if (!File.Exists(path)) { await SendAsync($"550 File not found: {path}"); return; }
             File.Delete(path);
             await SendAsync("250 File deleted.");
         }
@@ -452,8 +457,10 @@ internal class FtpClientSession
             _dataListener = new TcpListener(IPAddress.Any, port);
             _dataListener.Start();
             _usePasv = true;
-            // 0,0,0,0 让客户端用控制连接的目标 IP 主动连过来（NAT 友好）
-            await SendAsync($"227 Entering Passive Mode (0,0,0,0,{port / 256},{port % 256}).");
+            var localEp = (IPEndPoint?)_control.Client.LocalEndPoint;
+            var ip = localEp?.Address ?? IPAddress.Loopback;
+            var b = ip.GetAddressBytes();
+            await SendAsync($"227 Entering Passive Mode ({b[0]},{b[1]},{b[2]},{b[3]},{port / 256},{port % 256}).");
         }
         catch (Exception ex) { await SendAsync($"425 Cannot open passive port: {ex.Message}"); }
     }
@@ -573,7 +580,9 @@ internal class FtpClientSession
             rel = (current + "/" + norm).TrimStart('/');
         }
         var rootFull = GetRootFull();
+        var rootDirRaw = _cfg.RootDir;
         var combined = Path.GetFullPath(Path.Combine(rootFull, rel.Replace('/', Path.DirectorySeparatorChar)));
+        _host.LogInfo($"ResolvePath: userPath='{userPath}' norm='{norm}' rel='{rel}' rootDir='{rootDirRaw}' rootFull='{rootFull}' combined='{combined}' _currentDir='{_currentDir}'");
         if (!IsInsideRoot(combined))
             throw new UnauthorizedAccessException("Path traversal");
         return combined;
@@ -589,20 +598,25 @@ internal class FtpClientSession
 
     private string GetRootFull()
     {
-        return Path.GetFullPath(_cfg.RootDir)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var full = Path.GetFullPath(_cfg.RootDir);
+        // 确保以分隔符结尾，这样 Path.Combine 和 StartsWith 行为一致
+        return full.EndsWith(Path.DirectorySeparatorChar.ToString())
+            ? full
+            : full + Path.DirectorySeparatorChar;
     }
 
     private bool IsInsideRoot(string combined)
     {
         var rootFull = GetRootFull();
-        return combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase)
-            || combined.StartsWith(rootFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        if (combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase))
+            return true;
+        // rootFull 已有尾部分隔符，无需再加
+        return combined.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task SendAsync(string msg)
     {
-        var bytes = Encoding.ASCII.GetBytes(msg + "\r\n");
+        var bytes = Encoding.UTF8.GetBytes(msg + "\r\n");
         try { await _ctrlStream.WriteAsync(bytes); }
         catch (Exception ex) { _host.LogWarn($"FTP 发送失败: {ex.Message}"); }
     }

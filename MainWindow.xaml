@@ -78,7 +78,7 @@
                          MouseDoubleClick="HistoryList_DoubleClick">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Ip}" Padding="10,6" Foreground="#ECF0F1"/>
+                            <TextBlock Text="{Binding DisplayText}" Padding="10,6" Foreground="#ECF0F1"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                     <ListBox.ContextMenu>

@@ -274,16 +274,17 @@ namespace backgroundControl
 
         private void TogglePassword_Click(object sender, RoutedEventArgs e)
         {
-            var btn = (System.Windows.Controls.Button)sender;
-            if (PasswordBox.PasswordChar == '\0')
+            if (PasswordBox.Visibility == Visibility.Visible)
             {
-                PasswordBox.PasswordChar = '●';
-                btn.Content = "👁";
+                PasswordVisibleBox.Text = PasswordBox.Password;
+                PasswordBox.Visibility = Visibility.Collapsed;
+                PasswordVisibleBox.Visibility = Visibility.Visible;
             }
             else
             {
-                PasswordBox.PasswordChar = '\0';
-                btn.Content = "🙈";
+                PasswordBox.Password = PasswordVisibleBox.Text;
+                PasswordVisibleBox.Visibility = Visibility.Collapsed;
+                PasswordBox.Visibility = Visibility.Visible;
             }
         }
 
@@ -684,6 +685,55 @@ namespace backgroundControl
             e.UseDefaultCursors = true;
             e.Handled = true;
         }
+        private RemoteFileInfo? GetSingleSelectedFile()
+        {
+            return FileListView.SelectedItems.Count == 1
+                ? FileListView.SelectedItem as RemoteFileInfo : null;
+        }
+
+        private void FileListMenu_OpenView(object sender, RoutedEventArgs e)
+        {
+            var file = GetSingleSelectedFile();
+            if (file == null || file.IsDirectory) return;
+            if (_winscpSession is not { Opened: true })
+            { System.Windows.MessageBox.Show("未连接"); return; }
+
+            try
+            {
+                var tmp = Path.Combine(Path.GetTempPath(), file.Name);
+                int idx = 1;
+                while (File.Exists(tmp))
+                    tmp = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(file.Name)}_{idx++}{Path.GetExtension(file.Name)}");
+
+                var opts = new TransferOptions { TransferMode = TransferMode.Binary };
+                _winscpSession.GetFiles(file.FullPath, tmp, false, opts);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(tmp) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"打开失败: {ex.Message}");
+            }
+        }
+
+        private void FileListMenu_Download(object sender, RoutedEventArgs e)
+        {
+            var file = GetSingleSelectedFile();
+            if (file == null || file.IsDirectory) return;
+            DownloadRemoteFile(file.FullPath, file.Name);
+        }
+
+        private void FileListMenu_Delete(object sender, RoutedEventArgs e)
+        {
+            DeleteFile_Click(sender, e);
+        }
+
+        private void FileListMenu_CopyPath(object sender, RoutedEventArgs e)
+        {
+            var file = GetSingleSelectedFile();
+            if (file == null) return;
+            try { System.Windows.Clipboard.SetText(file.FullPath); } catch { }
+        }
+
         private void DownloadRemoteFile(string remotePath, string fileName)
         {
             var dlg = new Microsoft.Win32.SaveFileDialog { FileName = fileName };

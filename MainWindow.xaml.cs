@@ -218,24 +218,40 @@ namespace backgroundControl
         {
             if (HistoryList.SelectedItem is SshHistoryEntry entry)
             {
-                var sessionControl = new SessionControl();
-                var session = new TabItemViewModel
+                if (entry.ConnectionType == "Telnet")
                 {
-                    Header = entry.Ip,
-                    Content = sessionControl
-                };
-                sessionControl.DataContext = session;
-                SessionItems.Add(session);
-                SessionTabControl.SelectedItem = session;
-
-                try
-                {
-                    var password = SshHistoryManager.DecryptPassword(entry.Password);
-                    sessionControl.ConnectWithCredentials(entry.Ip, entry.Port, entry.Username, password);
+                    var telnetControl = new Views.TelnetControl();
+                    var tab = new TabItemViewModel
+                    {
+                        Header = $"{entry.Ip}",
+                        Content = telnetControl
+                    };
+                    telnetControl.DataContext = tab;
+                    SessionItems.Add(tab);
+                    SessionTabControl.SelectedItem = tab;
+                    telnetControl.ConnectWithCredentials(entry.Ip, entry.Port, entry.Username, entry.Password);
                 }
-                catch
+                else
                 {
-                    // 解密失败，让用户手动输入
+                    var sessionControl = new SessionControl();
+                    var session = new TabItemViewModel
+                    {
+                        Header = entry.Ip,
+                        Content = sessionControl
+                    };
+                    sessionControl.DataContext = session;
+                    SessionItems.Add(session);
+                    SessionTabControl.SelectedItem = session;
+
+                    try
+                    {
+                        var password = SshHistoryManager.DecryptPassword(entry.Password);
+                        sessionControl.ConnectWithCredentials(entry.Ip, entry.Port, entry.Username, password);
+                    }
+                    catch
+                    {
+                        // 解密失败，让用户手动输入
+                    }
                 }
             }
         }

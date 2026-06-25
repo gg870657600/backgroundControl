@@ -47,8 +47,6 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -57,10 +55,7 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="端口"        Style="{StaticResource LblStyle}"/>
-                <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtPort" Text="2121" Style="{StaticResource BoxStyle}" Margin="0,4"/>
-
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="被动端口起"  Style="{StaticResource LblStyle}"/>
-                <TextBox   Grid.Row="0" Grid.Column="3" x:Name="TxtPasvStart" Text="50000" Style="{StaticResource BoxStyle}" Margin="0,4"/>
+                <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtPort" Text="2121" Width="120" Style="{StaticResource BoxStyle}" Margin="0,4" HorizontalAlignment="Left"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="根目录"      Style="{StaticResource LblStyle}"/>
                 <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,4">
@@ -69,17 +64,14 @@
                     <TextBox x:Name="TxtRoot" Text="C:\" Style="{StaticResource BoxStyle}"/>
                 </DockPanel>
 
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="被动端口止"  Style="{StaticResource LblStyle}"/>
-                <TextBox   Grid.Row="1" Grid.Column="3" x:Name="TxtPasvEnd" Text="50100" Style="{StaticResource BoxStyle}" Margin="0,4"/>
-
                 <CheckBox  Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" x:Name="ChkAnonymous"
                            Content="允许匿名登录 (USER=anonymous, 密码任意)" IsChecked="True"
                            Margin="0,8,0,0" VerticalAlignment="Center"/>
 
-                <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="3" x:Name="BtnStart" Content="▶ 启动"
+                <Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" x:Name="BtnStart" Content="▶ 启动"
                         Background="#27AE60" Style="{StaticResource BtnStyle}" Width="100" Height="48"
                         Margin="12,4,0,4" Click="Start_Click"/>
-                <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="3" x:Name="BtnStop"  Content="■ 停止"
+                <Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" x:Name="BtnStop"  Content="■ 停止"
                         Background="#E74C3C" Style="{StaticResource BtnStyle}" Width="100" Height="48"
                         Margin="12,4,0,4" Click="Stop_Click" IsEnabled="False"
                         Visibility="Collapsed"/>
