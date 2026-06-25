@@ -13,6 +13,7 @@ public class IperfRunner : IDisposable
     private Process? _proc;
     private CancellationTokenSource? _cts;
     private readonly StringBuilder _stdout = new();
+    private bool _isClient;
 
     public bool IsRunning => _proc is { HasExited: false };
 
@@ -39,9 +40,10 @@ public class IperfRunner : IDisposable
     public void StartClient(string host, int port, int duration, int parallel,
         bool udp, string bandwidth, int interval)
     {
+        _isClient = true;
         var proto = udp ? "-u" : "";
         var bw = udp && !string.IsNullOrWhiteSpace(bandwidth) ? $"-b {bandwidth}" : "";
-        StartProcess($"-c {host} -p {port} -t {duration} -P {parallel} -i {interval} {proto} {bw}");
+        StartProcess($"-c {host} -p {port} -t {duration} -P {parallel} -i {interval} {proto} {bw} --forceflush");
     }
 
     private void StartProcess(string args)
@@ -150,10 +152,16 @@ public class IperfRunner : IDisposable
         if (!m.Success) return;
 
         var bw = ParseBitsPerSec(m.Groups[5].Value, m.Groups[6].Value);
+        // iperf3 stdout 末尾的 sender/receiver 汇总行带 "sender" / "receiver" 关键字
+        var isSenderLine   = line.Contains("sender",   StringComparison.OrdinalIgnoreCase);
+        var isReceiverLine = line.Contains("receiver", StringComparison.OrdinalIgnoreCase);
+
+        // 中间 interval 行：client 模式 = receiver 实时，server 模式 = sender 实时
+        // 末尾汇总行：按关键字覆盖对应字段
         var data = new IperfIntervalData
         {
-            BitsPerSec = bw,
-            ReceiverBitsPerSec = bw,
+            BitsPerSec         = isSenderLine   ? bw : (_isClient ? 0 : bw),
+            ReceiverBitsPerSec = isReceiverLine ? bw : (_isClient ? bw : 0),
         };
 
         var jm = JitterRegex.Match(line);
