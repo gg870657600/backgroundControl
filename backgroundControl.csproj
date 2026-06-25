@@ -33,10 +33,7 @@
 		<EmbeddedResource Include="tools\cygz.dll" />
 	</ItemGroup>
 
-	<Target Name="CopyTerminalNative" AfterTargets="Build">
-		<ItemGroup>
-			<NativeFiles Include="$(NuGetPackageRoot)microsoft.terminal.control\*\native\*.dll" />
-		</ItemGroup>
-		<Copy SourceFiles="@(NativeFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-	</Target>
+	<ItemGroup>
+		<Content Include="Microsoft.Terminal.Control.dll" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
 </Project>
