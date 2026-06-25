@@ -29,12 +29,14 @@
                     OnLogAppended="HttpCtrl_LogAppended"/>
             </TabItem>
             <TabItem Header="📂 FTP 服务">
-                <TextBlock Text="FTP 服务 — 阶段 3 实施" Foreground="#7F8C8D"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+                <views:FtpServerControl x:Name="FtpCtrl"
+                    OnStateChanged="FtpCtrl_StateChanged"
+                    OnLogAppended="FtpCtrl_LogAppended"/>
             </TabItem>
             <TabItem Header="📊 打流测试 (iperf3)">
-                <TextBlock Text="iperf3 打流 — 阶段 4 实施" Foreground="#7F8C8D"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" />
+                <views:IperfControl x:Name="IperfCtrl"
+                    OnStateChanged="IperfCtrl_StateChanged"
+                    OnLogAppended="IperfCtrl_LogAppended"/>
             </TabItem>
         </TabControl>
     </DockPanel>

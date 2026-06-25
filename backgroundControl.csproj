@@ -26,6 +26,13 @@
 		<PackageReference Include="WinSCP" Version="6.5.6" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<EmbeddedResource Include="tools\iperf3.exe" />
+		<EmbeddedResource Include="tools\cygwin1.dll" />
+		<EmbeddedResource Include="tools\cygcrypto-3.dll" />
+		<EmbeddedResource Include="tools\cygz.dll" />
+	</ItemGroup>
+
 	<Target Name="CopyTerminalNative" AfterTargets="Build">
 		<ItemGroup>
 			<NativeFiles Include="$(NuGetPackageRoot)microsoft.terminal.control\*\native\*.dll" />

@@ -32,4 +32,34 @@ public partial class ToolsWindow : Window
         // 现阶段只写本地 console
         System.Diagnostics.Debug.WriteLine($"[HTTP] {line.Trim()}");
     }
+
+    private void FtpCtrl_StateChanged(bool running)
+    {
+        FtpStatusRun.Text       = running ? "运行中" : "已停止";
+        FtpStatusRun.Foreground = running
+            ? (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0x2E, 0xCC, 0x71))
+            : (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0xE7, 0x4C, 0x3C));
+    }
+
+    private void FtpCtrl_LogAppended(string line)
+    {
+        System.Diagnostics.Debug.WriteLine($"[FTP] {line.Trim()}");
+    }
+
+    private void IperfCtrl_StateChanged(bool running)
+    {
+        IperfStatusRun.Text       = running ? "运行中" : "已停止";
+        IperfStatusRun.Foreground = running
+            ? (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0x2E, 0xCC, 0x71))
+            : (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0xE7, 0x4C, 0x3C));
+    }
+
+    private void IperfCtrl_LogAppended(string line)
+    {
+        System.Diagnostics.Debug.WriteLine($"[iperf3] {line.Trim()}");
+    }
 }

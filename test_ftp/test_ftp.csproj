@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>false</UseWindowsForms>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Tools\FtpServerHost.cs" Link="FtpServerHost.cs"/>
+    <Compile Include="..\Tools\ToolsLogger.cs" Link="ToolsLogger.cs"/>
+    <Compile Include="..\Tools\ToolsConfig.cs" Link="ToolsConfig.cs"/>
+  </ItemGroup>
+</Project>
