@@ -1289,9 +1289,30 @@ namespace backgroundControl
         }
         #endregion
 
+        private async void SendRuleCommand(string cmd)
+        {
+            if (_sshClient == null || !_sshClient.IsConnected)
+            {
+                System.Windows.MessageBox.Show("SSH 连接已断开，请重新连接设备。");
+                return;
+            }
+            try
+            {
+                await SwitchToAsync(toTelnet: true);
+                _globalShell.WriteLine(cmd);
+                await Task.Delay(300);
+                _globalShell.WriteLine("");
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"发送命令失败: {ex.Message}");
+            }
+        }
+
         private void EditRulesButton_Click(object sender, RoutedEventArgs e)
         {
             var w = new RuleEditorWindow(new ObservableCollection<RuleItem>(_ruleItems));
+            w.OnSendCommand = SendRuleCommand;
             if (w.ShowDialog() == true)
             {
                 _ruleItems = w.Rules.ToList();

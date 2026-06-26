@@ -8,6 +8,7 @@ namespace backgroundControl
     public partial class RuleEditorWindow : Window
     {
         public ObservableCollection<RuleItem> Rules { get; set; }
+        public Action<string> OnSendCommand { get; set; }
         private ICollectionView _filteredView;
 
         public RuleEditorWindow()
@@ -42,7 +43,26 @@ namespace backgroundControl
 
         private void SearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
-            _filteredView.Refresh();
+            if (_filteredView != null)
+                _filteredView.Refresh();
+        }
+
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (SearchBox.Text == "搜索关键词或命令...")
+            {
+                SearchBox.Text = "";
+                SearchBox.Foreground = System.Windows.Media.Brushes.Black;
+            }
+        }
+
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(SearchBox.Text))
+            {
+                SearchBox.Text = "搜索关键词或命令...";
+                SearchBox.Foreground = System.Windows.Media.Brushes.Gray;
+            }
         }
 
         private RuleItem CurrentRuleItem(object sender)
@@ -72,6 +92,13 @@ namespace backgroundControl
             var item = CurrentRuleItem(sender);
             if (item == null) return;
             Rules.Remove(item);
+        }
+
+        private void SendCommand_Click(object sender, RoutedEventArgs e)
+        {
+            var item = CurrentRuleItem(sender);
+            if (item == null || string.IsNullOrWhiteSpace(item.Command)) return;
+            OnSendCommand?.Invoke(item.Command);
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
