@@ -1116,7 +1116,7 @@ namespace backgroundControl
                         return;
                     }
                     _globalShell.WriteLine(_loopedCommand);
-                    await Task.Delay(300);
+                    await Task.Delay(100);
                     _globalShell.WriteLine("");
                 }
                 catch { }

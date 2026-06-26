@@ -10,6 +10,4 @@ public class SshHistoryEntry
     public string   Username { get; set; } = "";
     public string   Password { get; set; } = "";
     public DateTime LastUsed { get; set; } = DateTime.UtcNow;
-    public string   DisplayText => ConnectionType == "Telnet"
-        ? $"Telnet {Ip}" : $"SSH    {Ip}";
 }
