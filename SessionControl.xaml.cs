@@ -1385,7 +1385,15 @@ namespace backgroundControl
             try
             {
                 bool isLinux = IsLinuxCommand(cmd);
-                await SwitchToAsync(toTelnet: !isLinux);
+                if (isLinux)
+                {
+                    if (_currentEnv == ShellEnvironment.TelnetCli)
+                        await SwitchToAsync(toTelnet: false);
+                }
+                else if (IsDirectCommand(cmd))
+                {
+                    await SwitchToAsync(toTelnet: true);
+                }
             }
             catch { }
         }
