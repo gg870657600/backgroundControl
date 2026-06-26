@@ -78,16 +78,18 @@
                          MouseDoubleClick="HistoryList_DoubleClick">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Padding="10,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="45"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Background="#2C3E50" CornerRadius="3" Padding="5,1,5,2" Margin="0,0,8,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding ConnectionType}" Foreground="#95A5A6" FontSize="11" HorizontalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Grid.Column="1" Text="{Binding Ip}" Foreground="#ECF0F1" VerticalAlignment="Center"/>
-                            </Grid>
+                            <Border Padding="10,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#2C3E50" CornerRadius="3" Padding="5,1,5,2" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ConnectionType}" Foreground="#95A5A6" FontSize="11"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{Binding Ip}" Foreground="#ECF0F1" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                     <ListBox.ContextMenu>
