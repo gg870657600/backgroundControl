@@ -48,11 +48,11 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         TxtHost.IsEnabled = isClient;
         TxtDuration.IsEnabled = isClient;
         TxtParallel.IsEnabled = isClient;
-        TxtBandwidth.IsEnabled = isClient;
-        LblBandwidth.Visibility = isClient && CbProtocol.SelectedIndex == 1
-            ? Visibility.Visible : Visibility.Collapsed;
-        TxtBandwidth.Visibility = isClient && CbProtocol.SelectedIndex == 1
-            ? Visibility.Visible : Visibility.Collapsed;
+        CbProtocol.IsEnabled = isClient;
+        ProtocolRow.Visibility = isClient ? Visibility.Visible : Visibility.Collapsed;
+        var showBw = isClient && CbProtocol.SelectedIndex == 1;
+        LblBandwidth.Visibility = showBw ? Visibility.Visible : Visibility.Collapsed;
+        TxtBandwidth.Visibility = showBw ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void Protocol_Changed(object sender, SelectionChangedEventArgs e)
@@ -117,8 +117,14 @@ public partial class IperfControl : System.Windows.Controls.UserControl
                     _runner = null;
                     return;
                 }
-
                 var udp = CbProtocol.SelectedIndex == 1;
+                if (udp && par > 1)
+                {
+                    MessageBox.Show("UDP 模式不支持并行流（Cygwin iperf3 限制），请将并行流数设为 1 或改用 TCP", "配置错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _runner.Dispose();
+                    _runner = null;
+                    return;
+                }
                 var bw = udp ? TxtBandwidth.Text.Trim() : "";
                 _iperfDuration = dur;
                 _isClientMode = true;
@@ -145,11 +151,11 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         }
     }
 
-    private void Stop_Click(object sender, RoutedEventArgs e)
+    private async void Stop_Click(object sender, RoutedEventArgs e)
     {
         if (_runner == null) return;
         AppendLog("正在停止…");
-        _runner.Stop();
+        await Task.Run(() => _runner.Stop());
         _runner.Dispose();
         _runner = null;
     }
@@ -225,7 +231,7 @@ public partial class IperfControl : System.Windows.Controls.UserControl
             return;
         }
 
-        var xMax = _iperfDuration > 0 ? _iperfDuration : n;
+        var xMax = n;
         var xStep = w / Math.Max(1, xMax - 1);
         var yMax = Math.Max(0.1, _chartMaxMbps) * 1.2;
 

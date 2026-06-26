@@ -74,8 +74,8 @@
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="并行流数" Style="{StaticResource LblStyle}"/>
                 <TextBox   Grid.Row="2" Grid.Column="3" x:Name="TxtParallel" Text="1" Style="{StaticResource BoxStyle}" Margin="0,4"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="协议" Style="{StaticResource LblStyle}"/>
-                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" x:Name="ProtocolRow" Orientation="Horizontal">
+                    <TextBlock Text="协议" Style="{StaticResource LblStyle}"/>
                     <ComboBox x:Name="CbProtocol" SelectedIndex="0" Width="80" Margin="0,0,12,0" 
                               VerticalContentAlignment="Center" SelectionChanged="Protocol_Changed">
                         <ComboBoxItem Content="TCP"/>
