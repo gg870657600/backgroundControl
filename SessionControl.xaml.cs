@@ -1478,7 +1478,7 @@ namespace backgroundControl
         {
             try
             {
-                bool isLinux = IsLinuxCommand(cmd);
+                var (isLinux, _) = ClassifyCommand(cmd);
                 if (isLinux)
                 {
                     if (_currentEnv == ShellEnvironment.TelnetCli)
