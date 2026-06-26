@@ -53,7 +53,7 @@ namespace backgroundControl.Tools
             {
                 if (!System.IO.File.Exists(ConfigPath)) return new List<HighlightRule>();
                 var json = System.IO.File.ReadAllText(ConfigPath);
-                return JsonSerializer.Deserialize<List<HighlightRule>>(json) ?? new List<HighlightRule>();
+                return JsonSerializer.Deserialize<List<HighlightRule>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<HighlightRule>();
             }
             catch
             {
