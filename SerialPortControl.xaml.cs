@@ -7,6 +7,8 @@ using System.Windows.Input;
 using System.Linq;
 using System.Windows.Media;
 using backgroundControl.Tools;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace backgroundControl
 {
@@ -16,6 +18,13 @@ namespace backgroundControl
         private bool _disposed;
         private SerialTerminalConnection? _terminalConnection;
         public string TabHeader { get; set; }
+        private readonly object _logLock = new();
+        private StringBuilder _allTerminalOutput = new StringBuilder();
+        private StringBuilder _cleanOutput = new StringBuilder();
+
+        private static readonly Regex _ansiEscapeRegex = new Regex(@"\x1b\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
+        private static readonly Regex _ansiOSCRegex = new Regex(@"\x1b\][^\x07]*(\x07|\x1b\\)", RegexOptions.Compiled);
+        private static readonly Regex _controlCharRegex = new Regex(@"[\x00-\x08\x0B\x0C\x0E-\x1F]", RegexOptions.Compiled);
 
         public SerialPortControl()
         {
@@ -166,7 +175,16 @@ namespace backgroundControl
 
                 // 创建终端连接（仅用于显示）
                 _terminalConnection = new SerialTerminalConnection(_serialPort);
-                TerminalControl.Connection = new HighlightTerminalConnection(_terminalConnection);
+                var proxy = new HighlightTerminalConnection(_terminalConnection);
+                proxy.OnRawOutput = text => { lock (_logLock) {
+                    _allTerminalOutput.Append(text);
+                    string clean = _ansiEscapeRegex.Replace(text, "");
+                    clean = _ansiOSCRegex.Replace(clean, "");
+                    clean = _controlCharRegex.Replace(clean, "");
+                    clean = clean.Replace("\r\n", "\n").Replace("\r", "");
+                    _cleanOutput.Append(clean);
+                } };
+                TerminalControl.Connection = proxy;
 
                 // 发送初始换行唤醒设备
                 _serialPort.Write("\r\n");
@@ -210,6 +228,29 @@ namespace backgroundControl
             CloseSerialPort();
         }
 
+        private void CopyLog_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string processed;
+                lock (_logLock)
+                    processed = _cleanOutput.ToString().Replace("\n", Environment.NewLine);
+
+                if (string.IsNullOrWhiteSpace(processed))
+                {
+                    System.Windows.MessageBox.Show("暂无日志可复制", "提示");
+                    return;
+                }
+
+                System.Windows.Clipboard.SetText(processed, System.Windows.TextDataFormat.UnicodeText);
+                System.Windows.MessageBox.Show($"✅ 已复制 {processed.Length} 字符串口日志！", "成功");
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"复制失败：{ex.Message}", "错误");
+            }
+        }
+
         private void CloseSerialPort()
         {
             try
@@ -228,6 +269,7 @@ namespace backgroundControl
                     Txt_Status.Foreground = System.Windows.Media.Brushes.Red;
                     Btn_Open.IsEnabled = true;
                     Btn_Close.IsEnabled = false;
+                    TerminalControl.Connection = null;
                 });
             }
             catch { }

@@ -56,7 +56,12 @@ namespace backgroundControl
         private string _currentRemotePath = "/";
         private WinSCP.Session? _winscpSession;
         private readonly object _logLock = new();
-        public StringBuilder _allTerminalOutput = new StringBuilder(); // 终端日志缓存
+        public StringBuilder _allTerminalOutput = new StringBuilder(); // 终端日志原始缓存
+        private StringBuilder _cleanOutput = new StringBuilder();       // ANSI/控制字符已过滤，复制用
+
+        private static readonly Regex _ansiEscapeRegex = new Regex(@"\x1b\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
+        private static readonly Regex _ansiOSCRegex = new Regex(@"\x1b\][^\x07]*(\x07|\x1b\\)", RegexOptions.Compiled);
+        private static readonly Regex _controlCharRegex = new Regex(@"[\x00-\x08\x0B\x0C\x0E-\x1F]", RegexOptions.Compiled);
 
         private static readonly HashSet<string> _linuxCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -331,7 +336,14 @@ namespace backgroundControl
                     var conn = new SshTerminalConnection(_globalShell,this);
                     _terminalConnection = conn;
                     var proxy = new HighlightTerminalConnection(conn);
-                    proxy.OnRawOutput = text => { lock (_logLock) _allTerminalOutput.Append(text); };
+                    proxy.OnRawOutput = text => { lock (_logLock) {
+                        _allTerminalOutput.Append(text);
+                        string clean = _ansiEscapeRegex.Replace(text, "");
+                        clean = _ansiOSCRegex.Replace(clean, "");
+                        clean = _controlCharRegex.Replace(clean, "");
+                        clean = clean.Replace("\r\n", "\n").Replace("\r", "");
+                        _cleanOutput.Append(clean);
+                    } };
                     TerminalControl.Connection = proxy;
                     _globalShell.WriteLine("export TMOUT=0");
                     // 订阅输出事件，以便在每次输出后滚动到底部
@@ -1182,7 +1194,11 @@ namespace backgroundControl
             try
             {
                 // 1. 清空本地日志缓存
-                lock (_logLock) _allTerminalOutput.Clear();
+                lock (_logLock)
+                {
+                    _allTerminalOutput.Clear();
+                    _cleanOutput.Clear();
+                }
                 _searchMatchPositions.Clear();
                 _currentSearchIndex = -1;
                 SearchResultText.Text = "";
@@ -1484,34 +1500,18 @@ namespace backgroundControl
         {
             try
             {
-                string logText;
+                string processed;
                 lock (_logLock)
-                    logText = _allTerminalOutput.ToString();
+                    processed = _cleanOutput.ToString().Replace("\n", Environment.NewLine);
 
-                if (!string.IsNullOrWhiteSpace(logText))
-                {
-                    // 去除 ANSI 转义序列，保证粘贴纯文本
-                    logText = Regex.Replace(logText, @"\x1b\[[0-9;]*[A-Za-z]", "");
-                    logText = Regex.Replace(logText, @"\x1b\][^\x07]*(\x07|\x1b\\)", "");
-                    logText = logText.Replace("\r\n", "\n").Replace("\r", "");
-                    logText = logText.Replace("\n", Environment.NewLine);
-                    // 移除可能导致剪贴板截断的控制字符（保留 TAB/LF/CR）
-                    logText = Regex.Replace(logText, @"[\x00-\x08\x0B\x0C\x0E-\x1F]", "");
-
-                    System.Windows.Clipboard.SetText(logText, System.Windows.TextDataFormat.UnicodeText);
-
-                    // 验证剪贴板一致性
-                    string verifyText = "";
-                    try { verifyText = System.Windows.Clipboard.GetText(System.Windows.TextDataFormat.UnicodeText) ?? ""; } catch { }
-
-                    System.Windows.MessageBox.Show(
-                        $"✅ 已复制 {logText.Length} 字符（剪贴板验证 {verifyText.Length} 字符）",
-                        "成功");
-                }
-                else
+                if (string.IsNullOrWhiteSpace(processed))
                 {
                     System.Windows.MessageBox.Show("暂无日志可复制", "提示");
+                    return;
                 }
+
+                System.Windows.Clipboard.SetText(processed, System.Windows.TextDataFormat.UnicodeText);
+                System.Windows.MessageBox.Show($"✅ 已复制 {processed.Length} 字符控制台日志！", "成功");
             }
             catch (Exception ex)
             {
@@ -1583,21 +1583,16 @@ namespace backgroundControl
         private int CalculateTerminalViewTop(int matchPosition)
         {
             string logText;
-            lock (_logLock) logText = _allTerminalOutput.ToString();
+            lock (_logLock) logText = _cleanOutput.ToString();
+
             int columns = TerminalControl.Columns;
             if (columns <= 0) columns = 80;
 
-            // 清理 ANSI 转义序列，得到纯文本
-            string cleanText = Regex.Replace(logText, @"\x1b\[[0-9;]*[A-Za-z]", "");
-            cleanText = Regex.Replace(cleanText, @"\x1b\][^\x07]*(\x07|\x1b\\)", "");
-
-            // 将匹配位置也映射到清理后的文本（近似：取同一比例偏移）
-            double ratio = (logText.Length > 0) ? (double)cleanText.Length / logText.Length : 1.0;
-            int cleanMatchPos = Math.Min((int)(matchPosition * ratio), cleanText.Length - 1);
+            int cleanMatchPos = Math.Min(matchPosition, logText.Length - 1);
             if (cleanMatchPos < 0) cleanMatchPos = 0;
 
             // 计算匹配位置之前有多少个逻辑行
-            string textBeforeMatch = cleanText.Substring(0, cleanMatchPos);
+            string textBeforeMatch = logText.Substring(0, cleanMatchPos);
             var logicalLines = textBeforeMatch.Split('\n');
 
             // 每个逻辑行在终端中可能因为列宽而折行，计算总可视行数
@@ -1686,7 +1681,7 @@ namespace backgroundControl
             }
 
             string logText;
-            lock (_logLock) logText = _allTerminalOutput.ToString();
+            lock (_logLock) logText = _cleanOutput.ToString();
             if (string.IsNullOrEmpty(logText))
             {
                 SearchResultText.Text = "无内容";
