@@ -1106,7 +1106,7 @@ namespace backgroundControl
             }
 
             _loopTimer = new System.Timers.Timer(seconds * 1000);
-            _loopTimer.Elapsed += (_, _) =>
+            _loopTimer.Elapsed += async (_, _) =>
             {
                 try
                 {
@@ -1116,6 +1116,8 @@ namespace backgroundControl
                         return;
                     }
                     _globalShell.WriteLine(_loopedCommand);
+                    await Task.Delay(300);
+                    _globalShell.WriteLine("");
                 }
                 catch { }
             };
