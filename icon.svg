@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#B894F8"/>
+      <stop offset="35%" stop-color="#8661C5"/>
+      <stop offset="100%" stop-color="#3D1F6E"/>
+    </linearGradient>
+    <linearGradient id="screenBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A1A30"/>
+      <stop offset="100%" stop-color="#0C0C1A"/>
+    </linearGradient>
+    <linearGradient id="screenGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="b1"/>
+      <feGaussianBlur stdDeviation="7" result="b2"/>
+      <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#1A0D33" flood-opacity="0.7"/>
+    </filter>
+    <filter id="innerShadow">
+      <feOffset dx="0" dy="3"/>
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feComposite operator="out" in="SourceGraphic" in2="b" result="o"/>
+      <feFlood flood-color="black" flood-opacity="0.7"/>
+      <feComposite operator="in" in2="o"/>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+    <clipPath id="screenClip">
+      <rect x="30" y="48" width="196" height="164" rx="10"/>
+    </clipPath>
+  </defs>
+
+  <!-- shadow -->
+  <rect x="8" y="8" width="240" height="240" rx="36" filter="url(#shadow)" fill="none"/>
+
+  <!-- base -->
+  <rect x="4" y="4" width="248" height="248" rx="36" fill="url(#bg)"/>
+
+  <!-- base edge light -->
+  <rect x="4" y="4" width="248" height="248" rx="36" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1.5"/>
+  <rect x="5" y="5" width="246" height="246" rx="35" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+
+  <!-- screen outer bezel shadow -->
+  <rect x="28" y="46" width="200" height="168" rx="12" fill="rgba(0,0,0,0.5)" filter="url(#innerShadow)"/>
+
+  <!-- screen background -->
+  <rect x="30" y="48" width="196" height="164" rx="10" fill="url(#screenBg)"/>
+
+  <!-- screen border -->
+  <rect x="30" y="48" width="196" height="164" rx="10" fill="none" stroke="rgba(0,212,170,0.07)" stroke-width="1"/>
+
+  <!-- screen top highlight -->
+  <rect x="30" y="48" width="196" height="82" rx="10" fill="url(#screenGlow)" clip-path="url(#screenClip)"/>
+
+  <!-- scan lines -->
+  <g opacity="0.04" clip-path="url(#screenClip)">
+    <path d="M30 58h196M30 68h196M30 78h196M30 88h196M30 98h196M30 108h196M30 118h196M30 128h196M30 138h196M30 148h196M30 158h196M30 168h196M30 178h196M30 188h196M30 198h196" stroke="white" stroke-width="0.5"/>
+  </g>
+
+  <!-- prompt >_ -->
+  <g filter="url(#glow)">
+    <text x="128" y="140" font-family="Consolas, monospace" font-size="100" font-weight="900" fill="#00D4AA" text-anchor="middle" dominant-baseline="central">&gt;_</text>
+  </g>
+
+  <!-- blinking cursor overlay -->
+  <g filter="url(#glow)">
+    <rect x="160" y="118" width="42" height="10" rx="2" fill="#00D4AA">
+      <animate attributeName="opacity" values="1;0.1;1" dur="1.2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

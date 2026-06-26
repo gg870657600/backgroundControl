@@ -1,4 +1,4 @@
-<UserControl x:Class="backgroundControl.Views.IperfControl"
+﻿<UserControl x:Class="backgroundControl.Views.IperfControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White">
@@ -56,6 +56,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
@@ -76,10 +77,24 @@
 
                 <StackPanel Grid.Row="3" Grid.ColumnSpan="2" x:Name="ProtocolRow" Orientation="Horizontal">
                     <TextBlock Text="协议" Style="{StaticResource LblStyle}"/>
-                    <ComboBox x:Name="CbProtocol" SelectedIndex="0" Width="80" Margin="0,0,12,0" 
+                    <ComboBox x:Name="CbProtocol" SelectedIndex="0" Width="60" Margin="0,0,12,0" 
                               VerticalContentAlignment="Center" SelectionChanged="Protocol_Changed">
                         <ComboBoxItem Content="TCP"/>
                         <ComboBoxItem Content="UDP"/>
+                    </ComboBox>
+                    <TextBlock x:Name="LblTcpWin" Text="windows窗口大小" VerticalAlignment="Center" ToolTip="socket buffer"
+                               Foreground="#34495E" FontSize="13" Margin="0,0,8,0" Visibility="Collapsed"/>
+                    <CheckBox x:Name="CkTcpWin" VerticalAlignment="Center" 
+                              Margin="0,0,8,0" Visibility="Collapsed" 
+                              Checked="TcpWin_CheckedChanged" Unchecked="TcpWin_CheckedChanged"/>
+                    <TextBox x:Name="TxtTcpWinSize" Text="56" Width="60" 
+                             Style="{StaticResource BoxStyle}" Visibility="Collapsed" IsEnabled="False"/>
+                    <ComboBox x:Name="CbTcpWinUnit" SelectedIndex="0" Width="90" 
+                              VerticalContentAlignment="Center" Margin="4,0,5,0" 
+                              Visibility="Collapsed" IsEnabled="False">
+                        <ComboBoxItem Content="KByte"/>
+                        <ComboBoxItem Content="MByte"/>
+                        <ComboBoxItem Content="GByte"/>
                     </ComboBox>
                     <TextBlock x:Name="LblBandwidth" Text="带宽" VerticalAlignment="Center" 
                                Foreground="#34495E" FontSize="13" Margin="0,0,8,0" Visibility="Collapsed"/>
@@ -87,13 +102,28 @@
                              Style="{StaticResource BoxStyle}" Visibility="Collapsed"/>
                 </StackPanel>
 
-                <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="4" x:Name="BtnStart" Content="▶ 启动"
+                <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="5" x:Name="BtnStart" Content="▶ 启动"
                         Background="#27AE60" Style="{StaticResource BtnStyle}" Width="100" Height="60"
                         Margin="12,4,0,4" Click="Start_Click"/>
-                <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="4" x:Name="BtnStop"  Content="■ 停止"
+                <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="5" x:Name="BtnStop"  Content="■ 停止"
                         Background="#E74C3C" Style="{StaticResource BtnStyle}" Width="100" Height="60"
                         Margin="12,4,0,4" Click="Stop_Click" IsEnabled="False"
                         Visibility="Collapsed"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" x:Name="LblTcpWinSrv" Text="windows窗口大小" Style="{StaticResource LblStyle}" 
+                           ToolTip="socket buffer"/>
+                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                    <CheckBox x:Name="CkTcpWinSrv" VerticalAlignment="Center" Margin="0,0,8,0"
+                              Checked="TcpWinSrv_CheckedChanged" Unchecked="TcpWinSrv_CheckedChanged"/>
+                    <TextBox x:Name="TxtTcpWinSizeSrv" Text="56" Width="60" 
+                             Style="{StaticResource BoxStyle}" IsEnabled="False"/>
+                    <ComboBox x:Name="CbTcpWinUnitSrv" SelectedIndex="0" Width="80" 
+                              VerticalContentAlignment="Center" Margin="4,0,0,0" IsEnabled="False">
+                        <ComboBoxItem Content="KByte"/>
+                        <ComboBoxItem Content="MByte"/>
+                        <ComboBoxItem Content="GByte"/>
+                    </ComboBox>
+                </StackPanel>
             </Grid>
         </Border>
 

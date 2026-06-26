@@ -36,6 +36,7 @@ public partial class IperfControl : System.Windows.Controls.UserControl
     public IperfControl()
     {
         InitializeComponent();
+        Mode_Changed(null, null!);
         _cfg = ToolsConfig.Load();
         TxtPort.Text = _cfg.Iperf.DefaultPort.ToString();
         AppendLog("就绪。选择模式并配置参数后点击 启动。");
@@ -50,17 +51,53 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         TxtParallel.IsEnabled = isClient;
         CbProtocol.IsEnabled = isClient;
         ProtocolRow.Visibility = isClient ? Visibility.Visible : Visibility.Collapsed;
+        var isTcp = isClient && CbProtocol.SelectedIndex == 0;
         var showBw = isClient && CbProtocol.SelectedIndex == 1;
         LblBandwidth.Visibility = showBw ? Visibility.Visible : Visibility.Collapsed;
         TxtBandwidth.Visibility = showBw ? Visibility.Visible : Visibility.Collapsed;
+
+        LblTcpWin.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        CkTcpWin.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        TxtTcpWinSize.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        CbTcpWinUnit.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        if (isTcp) TcpWin_CheckedChanged(null, null!);
+
+        var isSrv = !isClient;
+        LblTcpWinSrv.Visibility = isSrv ? Visibility.Visible : Visibility.Collapsed;
+        CkTcpWinSrv.Visibility = isSrv ? Visibility.Visible : Visibility.Collapsed;
+        TxtTcpWinSizeSrv.Visibility = isSrv ? Visibility.Visible : Visibility.Collapsed;
+        CbTcpWinUnitSrv.Visibility = isSrv ? Visibility.Visible : Visibility.Collapsed;
+        if (isSrv) TcpWinSrv_CheckedChanged(null, null!);
+    }
+
+    private void TcpWin_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        var enabled = CkTcpWin.IsChecked == true;
+        TxtTcpWinSize.IsEnabled = enabled;
+        CbTcpWinUnit.IsEnabled = enabled;
+    }
+
+    private void TcpWinSrv_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        var enabled = CkTcpWinSrv.IsChecked == true;
+        TxtTcpWinSizeSrv.IsEnabled = enabled;
+        CbTcpWinUnitSrv.IsEnabled = enabled;
     }
 
     private void Protocol_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (LblBandwidth == null || TxtBandwidth == null) return;
-        var show = CbProtocol.SelectedIndex == 1;
-        LblBandwidth.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        TxtBandwidth.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        var isUdp = CbProtocol.SelectedIndex == 1;
+        var isTcp = CbProtocol.SelectedIndex == 0;
+
+        LblBandwidth.Visibility = isUdp ? Visibility.Visible : Visibility.Collapsed;
+        TxtBandwidth.Visibility = isUdp ? Visibility.Visible : Visibility.Collapsed;
+
+        LblTcpWin.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        CkTcpWin.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        TxtTcpWinSize.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        CbTcpWinUnit.Visibility = isTcp ? Visibility.Visible : Visibility.Collapsed;
+        if (isTcp) TcpWin_CheckedChanged(null, null!);
     }
 
     private void AppendLog(string msg)
@@ -126,15 +163,17 @@ public partial class IperfControl : System.Windows.Controls.UserControl
                     return;
                 }
                 var bw = udp ? TxtBandwidth.Text.Trim() : "";
+                var tcpWin = (!udp && CkTcpWin.IsChecked == true) ? $"{TxtTcpWinSize.Text.Trim()}{((ComboBoxItem)CbTcpWinUnit.SelectedItem).Content.ToString()![0]}" : null;
                 _iperfDuration = dur;
                 _isClientMode = true;
-                _runner.StartClient(host, port, dur, par, udp, bw, 1);
+                _runner.StartClient(host, port, dur, par, udp, bw, 1, tcpWin);
             }
             else
             {
+                var tcpWin = CkTcpWinSrv.IsChecked == true ? $"{TxtTcpWinSizeSrv.Text.Trim()}{((ComboBoxItem)CbTcpWinUnitSrv.SelectedItem).Content.ToString()![0]}" : null;
                 _iperfDuration = 0;
                 _isClientMode = false;
-                _runner.StartServer(port);
+                _runner.StartServer(port, tcpWin);
             }
 
             ResetChart();
@@ -288,6 +327,17 @@ public partial class IperfControl : System.Windows.Controls.UserControl
         TxtParallel.IsEnabled = enabled && RbClient.IsChecked == true;
         CbProtocol.IsEnabled = enabled && RbClient.IsChecked == true;
         TxtBandwidth.IsEnabled = enabled && RbClient.IsChecked == true;
+        var isClient = RbClient.IsChecked == true;
+        var isTcp = isClient && CbProtocol.SelectedIndex == 0;
+        LblTcpWin.IsEnabled = enabled && isTcp;
+        CkTcpWin.IsEnabled = enabled && isTcp;
+        TxtTcpWinSize.IsEnabled = enabled && isTcp && CkTcpWin.IsChecked == true;
+        CbTcpWinUnit.IsEnabled = enabled && isTcp && CkTcpWin.IsChecked == true;
+        var isSrv = !enabled ? false : RbClient.IsChecked == false;
+        LblTcpWinSrv.IsEnabled = enabled && isSrv;
+        CkTcpWinSrv.IsEnabled = enabled && isSrv;
+        TxtTcpWinSizeSrv.IsEnabled = enabled && isSrv && CkTcpWinSrv.IsChecked == true;
+        CbTcpWinUnitSrv.IsEnabled = enabled && isSrv && CkTcpWinSrv.IsChecked == true;
         BtnStart.IsEnabled = enabled;
         BtnStop.IsEnabled = !enabled;
         BtnStart.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;

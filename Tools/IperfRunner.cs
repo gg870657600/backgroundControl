@@ -23,10 +23,11 @@ public class IperfRunner : IDisposable
     public event Action<IperfIntervalData>? OnInterval;
     public event Action<IperfFinalResult>?  OnFinal;
 
-    public void StartServer(int port)
+    public void StartServer(int port, string? tcpWindowSize = null)
     {
         KillIperfProcesses();
-        StartProcess($"-s -1 -p {port} -i 1 --forceflush");
+        var win = !string.IsNullOrWhiteSpace(tcpWindowSize) ? $"-w {tcpWindowSize}" : "";
+        StartProcess($"-s -1 -p {port} -i 1 {win} --forceflush");
     }
 
     private static void KillIperfProcesses()
@@ -39,12 +40,13 @@ public class IperfRunner : IDisposable
     }
 
     public void StartClient(string host, int port, int duration, int parallel,
-        bool udp, string bandwidth, int interval)
+        bool udp, string bandwidth, int interval, string? tcpWindowSize = null)
     {
         _isClient = true;
         var proto = udp ? "-u" : "";
         var bw = udp && !string.IsNullOrWhiteSpace(bandwidth) ? $"-b {bandwidth}" : "";
-        StartProcess($"-c {host} -p {port} -t {duration} -P {parallel} -i {interval} {proto} {bw} --forceflush");
+        var win = !string.IsNullOrWhiteSpace(tcpWindowSize) ? $"-w {tcpWindowSize}" : "";
+        StartProcess($"-c {host} -p {port} -t {duration} -P {parallel} -i {interval} {proto} {bw} {win} --forceflush");
     }
 
     private void StartProcess(string args)

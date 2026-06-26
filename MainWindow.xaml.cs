@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Markup;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using backgroundControl.Tools;
 
@@ -44,6 +45,7 @@ namespace backgroundControl
         public MainWindow()
         {
             InitializeComponent();
+            try { Icon = BitmapFrame.Create(new Uri("BackgroundControl.ico", UriKind.RelativeOrAbsolute)); } catch { }
             SessionItems = new ObservableCollection<TabItemViewModel>();
 
             // 1. 默认启动：本地 CMD
