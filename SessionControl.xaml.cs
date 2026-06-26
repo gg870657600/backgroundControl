@@ -55,6 +55,7 @@ namespace backgroundControl
         private SftpClient? _sftpClient;
         private string _currentRemotePath = "/";
         private WinSCP.Session? _winscpSession;
+        private readonly object _logLock = new();
         public StringBuilder _allTerminalOutput = new StringBuilder(); // 终端日志缓存
 
         private static readonly HashSet<string> _linuxCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -1179,7 +1180,7 @@ namespace backgroundControl
             try
             {
                 // 1. 清空本地日志缓存
-                _allTerminalOutput.Clear();
+                lock (_logLock) _allTerminalOutput.Clear();
                 _searchMatchPositions.Clear();
                 _currentSearchIndex = -1;
                 SearchResultText.Text = "";
@@ -1481,16 +1482,20 @@ namespace backgroundControl
         {
             try
             {
-                string logText = _allTerminalOutput.ToString();
+                string logText;
+                lock (_logLock)
+                    logText = _allTerminalOutput.ToString();
 
                 if (!string.IsNullOrWhiteSpace(logText))
                 {
-                    // 🔥 核心：清理多余换行，完美还原终端显示
-                    logText = logText.Replace("\r\n", "\n").Replace("\r", "");  // 统一换行
-                    logText = logText.Replace("\n", Environment.NewLine);      // 转成Windows标准换行
+                    logText = logText.Replace("\r\n", "\n").Replace("\r", "");
+                    logText = logText.Replace("\n", Environment.NewLine);
 
-                    System.Windows.Clipboard.SetText(logText);
-                    System.Windows.MessageBox.Show("✅ 已复制全部控制台日志！", "成功");
+                    var data = new System.Windows.DataObject();
+                    data.SetData(DataFormats.Text, logText);
+                    System.Windows.Clipboard.SetDataObject(data, true);
+
+                    System.Windows.MessageBox.Show($"✅ 已复制 {logText.Length} 字符控制台日志！", "成功");
                 }
                 else
                 {
@@ -1566,7 +1571,8 @@ namespace backgroundControl
         /// </summary>
         private int CalculateTerminalViewTop(int matchPosition)
         {
-            string logText = _allTerminalOutput.ToString();
+            string logText;
+            lock (_logLock) logText = _allTerminalOutput.ToString();
             int columns = TerminalControl.Columns;
             if (columns <= 0) columns = 80;
 
@@ -1668,7 +1674,8 @@ namespace backgroundControl
                 return;
             }
 
-            string logText = _allTerminalOutput.ToString();
+            string logText;
+            lock (_logLock) logText = _allTerminalOutput.ToString();
             if (string.IsNullOrEmpty(logText))
             {
                 SearchResultText.Text = "无内容";
@@ -1933,10 +1940,8 @@ namespace backgroundControl
                         if (n <= 0) break;
 
                         string text = Encoding.UTF8.GetString(buffer, 0, n);
-                        // ---------------------
-                        // 🔥 新增：缓存日志
-                        // ---------------------
-                        _sessionControl._allTerminalOutput.Append(text);
+                        lock (_sessionControl._logLock)
+                            _sessionControl._allTerminalOutput.Append(text);
 
                         TerminalOutput?.Invoke(this, new TerminalOutputEventArgs(text));
                     }
