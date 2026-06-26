@@ -40,6 +40,9 @@ namespace backgroundControl
         private const string HistoryFilePath = "command_history.txt";
         private System.Timers.Timer _keepAliveTimer;
         private const int KeepAliveInterval = 60000;
+        private System.Timers.Timer _loopTimer;
+        private string _loopedCommand;
+        private bool _isLooping;
         private bool _isTelnetLoggedIn = false;
         private ShellEnvironment _currentEnv = ShellEnvironment.Unknown;
         private CancellationTokenSource _cmdCts;
@@ -121,6 +124,7 @@ namespace backgroundControl
             };
 
             SendButton.IsEnabled = true;
+            LoopButton.IsEnabled = true;
             LoadHistory();
             InputComboBox.ItemsSource = _inputHistory;
 
@@ -343,6 +347,7 @@ namespace backgroundControl
                         ConnectButton.IsEnabled = false;
                         DisconnectButton.IsEnabled = true;
                         SendButton.IsEnabled = true;
+                        LoopButton.IsEnabled = true;
                     });
 
                     SshHistoryManager.RecordConnection(targetIp, port, username, password);
@@ -1076,6 +1081,72 @@ namespace backgroundControl
             }
         }
 
+        private void LoopButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isLooping)
+            {
+                StopLoop();
+                return;
+            }
+
+            string input = InputComboBox.Text.Trim();
+            if (string.IsNullOrEmpty(input))
+            {
+                System.Windows.MessageBox.Show("请输入要循环下发的指令");
+                return;
+            }
+
+            var (_, finalCmd) = ClassifyCommand(input);
+            _loopedCommand = finalCmd;
+
+            if (!int.TryParse(IntervalBox.Text, out var seconds) || seconds < 1)
+            {
+                System.Windows.MessageBox.Show("间隔时间必须 ≥ 1 秒");
+                return;
+            }
+
+            _loopTimer = new System.Timers.Timer(seconds * 1000);
+            _loopTimer.Elapsed += (_, _) =>
+            {
+                try
+                {
+                    if (_sshClient == null || !_sshClient.IsConnected)
+                    {
+                        Dispatcher.Invoke(() => StopLoop());
+                        return;
+                    }
+                    _globalShell.WriteLine(_loopedCommand);
+                }
+                catch { }
+            };
+            _loopTimer.AutoReset = true;
+            _loopTimer.Start();
+            _isLooping = true;
+
+            LoopButton.Content = "⏹ 停止";
+            LoopButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69));
+            SendButton.IsEnabled = false;
+            InputComboBox.IsEnabled = false;
+            IntervalBox.IsEnabled = false;
+
+            if (_currentEnv != ShellEnvironment.TelnetCli)
+                _ = SwitchToAsync(toTelnet: true);
+        }
+
+        private void StopLoop()
+        {
+            _loopTimer?.Stop();
+            _loopTimer?.Dispose();
+            _loopTimer = null;
+            _isLooping = false;
+
+            LoopButton.Content = "🔄 循环下发";
+            LoopButton.Background = null;
+            SendButton.IsEnabled = true;
+            InputComboBox.IsEnabled = true;
+            IntervalBox.IsEnabled = true;
+        }
+
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
             // 1. 检查 SSH 客户端和 ShellStream 是否有效
@@ -1153,6 +1224,7 @@ namespace backgroundControl
                 ConnectButton.IsEnabled = true;
                 DisconnectButton.IsEnabled = false;
                 SendButton.IsEnabled = false;
+                LoopButton.IsEnabled = false;
                 // 隐藏文件面板
                 LeftColumn.Width = new GridLength(0);
                 SplitterColumn.Width = new GridLength(0);
@@ -1337,6 +1409,7 @@ namespace backgroundControl
         {
             try
             {
+                if (_isLooping) Dispatcher.Invoke(() => StopLoop());
                 StopKeepAliveTimer();
 
                 // 关闭 WinSCP
