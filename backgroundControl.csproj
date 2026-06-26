@@ -36,5 +36,6 @@
 	<ItemGroup>
 		<Content Include="Microsoft.Terminal.Control.dll" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="rules.json" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="highlight-config.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 </Project>

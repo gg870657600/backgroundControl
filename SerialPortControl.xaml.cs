@@ -6,6 +6,7 @@ using Microsoft.Terminal.Wpf;
 using System.Windows.Input;
 using System.Linq;
 using System.Windows.Media;
+using backgroundControl.Tools;
 
 namespace backgroundControl
 {
@@ -165,7 +166,7 @@ namespace backgroundControl
 
                 // 创建终端连接（仅用于显示）
                 _terminalConnection = new SerialTerminalConnection(_serialPort);
-                TerminalControl.Connection = _terminalConnection;
+                TerminalControl.Connection = new HighlightTerminalConnection(_terminalConnection);
 
                 // 发送初始换行唤醒设备
                 _serialPort.Write("\r\n");

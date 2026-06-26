@@ -1,0 +1,16 @@
+[
+  { "pattern": "\\berror\\b|\\bfail(ed)?\\b|\\bdenied\\b|\\breject\\b", "color": "31", "label": "错误" },
+  { "pattern": "\\bwarning\\b|\\bwarn\\b|\\balert\\b", "color": "33", "label": "警告" },
+  { "pattern": "\\bsuccess\\b|\\bok\\b|\\bdone\\b|\\bcomplete\\b", "color": "32", "label": "成功" },
+  { "pattern": "\\benable(d)?\\b|\\bconnected\\b|\\blogin\\b", "color": "32", "label": "启用" },
+  { "pattern": "\\bdisable(d)?\\b|\\bdisconnect\\b|\\blogout\\b|\\btimeout\\b", "color": "31", "label": "禁用" },
+  { "pattern": "\\bip\\b|\\b地址\\b", "color": "35", "label": "IP" },
+  { "pattern": "([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})", "color": "35", "label": "MAC地址" },
+  { "pattern": "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}", "color": "35", "label": "IP地址" },
+  { "pattern": "\\baupc\\b", "color": "36", "label": "AUPC" },
+  { "pattern": "\\blnb\\b|\\bbuc\\b", "color": "36", "label": "LNB/BUC" },
+  { "pattern": "\\btdma\\b|\\bscpc\\b", "color": "34", "label": "TDMA/SCPC" },
+  { "pattern": "\\block\\b|\\bsync\\b", "color": "33", "label": "锁定" },
+  { "pattern": "\\bunlock\\b", "color": "31", "label": "解锁" },
+  { "pattern": "\\d+\\.?\\d*\\s*(dB|MHz|GHz|W|mW)", "color": "33", "label": "数值" }
+]

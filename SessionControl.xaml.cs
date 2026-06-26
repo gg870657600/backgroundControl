@@ -325,7 +325,7 @@ namespace backgroundControl
                     _globalShell = client.CreateShellStream("xterm-256color", 80, 24, 800, 600, 1024 * 1024);
                     var conn = new SshTerminalConnection(_globalShell,this);
                     _terminalConnection = conn;
-                    TerminalControl.Connection = conn;
+                    TerminalControl.Connection = new HighlightTerminalConnection(conn);
                     _globalShell.WriteLine("export TMOUT=0");
                     // 订阅输出事件，以便在每次输出后滚动到底部
                     conn.TerminalOutput += (sender, args) =>

@@ -69,7 +69,7 @@ public partial class TelnetControl : IDisposable
             _stream = _tcpClient.GetStream();
 
             _terminalConnection = new TelnetTerminalConnection(this);
-            TerminalControl.Connection = _terminalConnection;
+            TerminalControl.Connection = new HighlightTerminalConnection(_terminalConnection);
 
             _isRunning = true;
             _readerThread = new Thread(ReaderLoop) { IsBackground = true };
