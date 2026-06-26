@@ -19,6 +19,7 @@ namespace backgroundControl.Tools
         private readonly ITerminalConnection _inner;
 
         public event EventHandler<TerminalOutputEventArgs>? TerminalOutput;
+        public Action<string>? OnRawOutput { get; set; }
 
         public HighlightTerminalConnection(ITerminalConnection inner)
         {
@@ -28,6 +29,7 @@ namespace backgroundControl.Tools
 
         private void OnInnerTerminalOutput(object? sender, TerminalOutputEventArgs e)
         {
+            OnRawOutput?.Invoke(e.Data);
             var highlighted = ApplyHighlight(e.Data);
             TerminalOutput?.Invoke(this, new TerminalOutputEventArgs(highlighted));
         }

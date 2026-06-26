@@ -330,7 +330,9 @@ namespace backgroundControl
                     _globalShell = client.CreateShellStream("xterm-256color", 80, 24, 800, 600, 1024 * 1024);
                     var conn = new SshTerminalConnection(_globalShell,this);
                     _terminalConnection = conn;
-                    TerminalControl.Connection = new HighlightTerminalConnection(conn);
+                    var proxy = new HighlightTerminalConnection(conn);
+                    proxy.OnRawOutput = text => { lock (_logLock) _allTerminalOutput.Append(text); };
+                    TerminalControl.Connection = proxy;
                     _globalShell.WriteLine("export TMOUT=0");
                     // 订阅输出事件，以便在每次输出后滚动到底部
                     conn.TerminalOutput += (sender, args) =>
@@ -1466,7 +1468,7 @@ namespace backgroundControl
                     if (_currentEnv == ShellEnvironment.TelnetCli)
                         await SwitchToAsync(toTelnet: false);
                 }
-                else if (IsDirectCommand(cmd))
+                else
                 {
                     await SwitchToAsync(toTelnet: true);
                 }
@@ -1488,14 +1490,23 @@ namespace backgroundControl
 
                 if (!string.IsNullOrWhiteSpace(logText))
                 {
+                    // 去除 ANSI 转义序列，保证粘贴纯文本
+                    logText = Regex.Replace(logText, @"\x1b\[[0-9;]*[A-Za-z]", "");
+                    logText = Regex.Replace(logText, @"\x1b\][^\x07]*(\x07|\x1b\\)", "");
                     logText = logText.Replace("\r\n", "\n").Replace("\r", "");
                     logText = logText.Replace("\n", Environment.NewLine);
+                    // 移除可能导致剪贴板截断的控制字符（保留 TAB/LF/CR）
+                    logText = Regex.Replace(logText, @"[\x00-\x08\x0B\x0C\x0E-\x1F]", "");
 
-                    var data = new System.Windows.DataObject();
-                    data.SetData(DataFormats.Text, logText);
-                    System.Windows.Clipboard.SetDataObject(data, true);
+                    System.Windows.Clipboard.SetText(logText, System.Windows.TextDataFormat.UnicodeText);
 
-                    System.Windows.MessageBox.Show($"✅ 已复制 {logText.Length} 字符控制台日志！", "成功");
+                    // 验证剪贴板一致性
+                    string verifyText = "";
+                    try { verifyText = System.Windows.Clipboard.GetText(System.Windows.TextDataFormat.UnicodeText) ?? ""; } catch { }
+
+                    System.Windows.MessageBox.Show(
+                        $"✅ 已复制 {logText.Length} 字符（剪贴板验证 {verifyText.Length} 字符）",
+                        "成功");
                 }
                 else
                 {
@@ -1940,8 +1951,6 @@ namespace backgroundControl
                         if (n <= 0) break;
 
                         string text = Encoding.UTF8.GetString(buffer, 0, n);
-                        lock (_sessionControl._logLock)
-                            _sessionControl._allTerminalOutput.Append(text);
 
                         TerminalOutput?.Invoke(this, new TerminalOutputEventArgs(text));
                     }
