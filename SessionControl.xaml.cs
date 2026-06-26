@@ -1141,7 +1141,7 @@ namespace backgroundControl
             _isLooping = false;
 
             LoopButton.Content = "🔄 循环下发";
-            LoopButton.Background = null;
+            LoopButton.ClearValue(System.Windows.Controls.Button.BackgroundProperty);
             SendButton.IsEnabled = true;
             InputComboBox.IsEnabled = true;
             IntervalBox.IsEnabled = true;
