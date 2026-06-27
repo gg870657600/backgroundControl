@@ -14,10 +14,20 @@ public class SshSessionTests : IDisposable
 
     public SshSessionTests()
     {
-        _ip = "197.6.6.26";
-        _port = 22;
-        _user = "root";
-        _pass = "andisat";
+        var recent = SshHistoryManager.Load()
+            .Where(e => e.ConnectionType == "SSH")
+            .MaxBy(e => e.LastUsed);
+
+        if (recent == null)
+        {
+            _connected = false;
+            return;
+        }
+
+        _ip = recent.Ip;
+        _port = recent.Port;
+        _user = recent.Username;
+        _pass = SshHistoryManager.DecryptPassword(recent.Password);
 
         try
         {
