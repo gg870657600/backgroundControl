@@ -35,6 +35,9 @@ packages/
 *.exe
 *.pdb
 
+# Test results
+BackgroundControl.Tests/TestResults/
+
 # Local user/runtime files
 command_history.txt
 rules.json

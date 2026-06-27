@@ -124,6 +124,23 @@ public class FtpServerHost : IDisposable
         else                       ToolsLogger.Info (ToolsLogger.Source.Ftp, msg);
     }
 
+    public static string GetRootFull(string rootDir)
+    {
+        var full = Path.GetFullPath(rootDir);
+        return full.EndsWith(Path.DirectorySeparatorChar.ToString())
+            ? full
+            : full + Path.DirectorySeparatorChar;
+    }
+
+    public static bool IsInsideRoot(string combined, string rootDir)
+    {
+        var rootFull = GetRootFull(rootDir);
+        var pathFull = Path.GetFullPath(combined);
+        if (!pathFull.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            pathFull += Path.DirectorySeparatorChar;
+        return pathFull.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase);
+    }
+
     public void Dispose() => Stop();
 }
 
@@ -598,20 +615,12 @@ internal class FtpClientSession
 
     private string GetRootFull()
     {
-        var full = Path.GetFullPath(_cfg.RootDir);
-        // 确保以分隔符结尾，这样 Path.Combine 和 StartsWith 行为一致
-        return full.EndsWith(Path.DirectorySeparatorChar.ToString())
-            ? full
-            : full + Path.DirectorySeparatorChar;
+        return FtpServerHost.GetRootFull(_cfg.RootDir);
     }
 
     private bool IsInsideRoot(string combined)
     {
-        var rootFull = GetRootFull();
-        if (combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase))
-            return true;
-        // rootFull 已有尾部分隔符，无需再加
-        return combined.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase);
+        return FtpServerHost.IsInsideRoot(combined, _cfg.RootDir);
     }
 
     private async Task SendAsync(string msg)

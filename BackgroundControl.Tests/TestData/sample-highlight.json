@@ -1,0 +1,5 @@
+[
+  { "pattern": "(error|fail|fault)", "color": "Red",   "label": "Error" },
+  { "pattern": "(warning|warn)",     "color": "Yellow","label": "Warning" },
+  { "pattern": "ok|success|正常",    "color": "Green", "label": "Success" }
+]

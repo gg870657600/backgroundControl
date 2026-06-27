@@ -18,12 +18,13 @@ public static class SshHistoryManager
 
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("BackgroundControl-SshHistory");
 
-    public static List<SshHistoryEntry> Load()
+    public static List<SshHistoryEntry> Load(string? filePath = null)
     {
+        var path = filePath ?? FilePath;
         try
         {
-            if (!File.Exists(FilePath)) return new List<SshHistoryEntry>();
-            var json = File.ReadAllText(FilePath);
+            if (!File.Exists(path)) return new List<SshHistoryEntry>();
+            var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<List<SshHistoryEntry>>(json) ?? new List<SshHistoryEntry>();
         }
         catch
@@ -32,14 +33,15 @@ public static class SshHistoryManager
         }
     }
 
-    public static void Save(List<SshHistoryEntry> entries)
+    public static void Save(List<SshHistoryEntry> entries, string? filePath = null)
     {
-        var dir = Path.GetDirectoryName(FilePath)!;
+        var path = filePath ?? FilePath;
+        var dir = Path.GetDirectoryName(path)!;
         Directory.CreateDirectory(dir);
-        var tmp = FilePath + ".tmp";
+        var tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(entries));
-        if (File.Exists(FilePath)) File.Replace(tmp, FilePath, null);
-        else File.Move(tmp, FilePath);
+        if (File.Exists(path)) File.Replace(tmp, path, null);
+        else File.Move(tmp, path);
     }
 
     public static string EncryptPassword(string plain)

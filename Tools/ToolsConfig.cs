@@ -28,17 +28,17 @@ public class ToolsConfig
     /// <summary>
     /// 加载配置；文件不存在或损坏时返回默认值
     /// </summary>
-    public static ToolsConfig Load()
+    public static ToolsConfig Load(string? configPath = null)
     {
+        var path = configPath ?? ConfigPath;
         try
         {
-            if (!File.Exists(ConfigPath)) return new ToolsConfig();
-            var json = File.ReadAllText(ConfigPath);
+            if (!File.Exists(path)) return new ToolsConfig();
+            var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<ToolsConfig>(json) ?? new ToolsConfig();
         }
         catch
         {
-            // 配置损坏时回退到默认，避免阻塞启动
             return new ToolsConfig();
         }
     }
@@ -46,15 +46,15 @@ public class ToolsConfig
     /// <summary>
     /// 原子写入：先写 .tmp 再 rename，避免半写文件
     /// </summary>
-    public void Save()
+    public void Save(string? configPath = null)
     {
-        var dir = Path.GetDirectoryName(ConfigPath)!;
+        var path = configPath ?? ConfigPath;
+        var dir = Path.GetDirectoryName(path)!;
         Directory.CreateDirectory(dir);
-        var tmp = ConfigPath + ".tmp";
+        var tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
-        // 原子替换（Windows 上 File.Move 同盘是原子的）
-        if (File.Exists(ConfigPath)) File.Replace(tmp, ConfigPath, null);
-        else                        File.Move(tmp, ConfigPath);
+        if (File.Exists(path)) File.Replace(tmp, path, null);
+        else                   File.Move(tmp, path);
     }
 }
 

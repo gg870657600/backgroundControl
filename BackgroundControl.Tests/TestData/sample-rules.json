@@ -1,0 +1,18 @@
+[
+  {
+    "Keywords": "关站 关电源 关闭发射",
+    "Command": "set-rf:off"
+  },
+  {
+    "Keywords": "开站 开电源 开启发射",
+    "Command": "set-rf:on"
+  },
+  {
+    "Keywords": "查功率 读功率 功率查询",
+    "Command": "get-rf-power"
+  },
+  {
+    "Keywords": "aupc 关aupc scpc",
+    "Command": "close aupc scpc"
+  }
+]

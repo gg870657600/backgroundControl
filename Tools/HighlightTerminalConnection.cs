@@ -36,9 +36,14 @@ namespace backgroundControl.Tools
 
         private static string ApplyHighlight(string text)
         {
-            if (string.IsNullOrEmpty(text) || _compiledRules.Count == 0) return text;
+            return ApplyHighlight(text, _compiledRules);
+        }
 
-            foreach (var (regex, color) in _compiledRules)
+        public static string ApplyHighlight(string text, IReadOnlyList<(Regex Regex, string Color)> patterns)
+        {
+            if (string.IsNullOrEmpty(text) || patterns.Count == 0) return text;
+
+            foreach (var (regex, color) in patterns)
             {
                 try
                 {
@@ -49,7 +54,7 @@ namespace backgroundControl.Tools
             return text;
         }
 
-        private static List<(Regex, string)> CompileRules(List<HighlightRule> rules)
+        public static List<(Regex, string)> CompileRules(List<HighlightRule> rules)
         {
             var list = new List<(Regex, string)>(rules.Count);
             foreach (var rule in rules)
@@ -63,18 +68,23 @@ namespace backgroundControl.Tools
             return list;
         }
 
-        private static List<HighlightRule> LoadRules()
+        public static List<HighlightRule> LoadRules(string configPath)
         {
             try
             {
-                if (!System.IO.File.Exists(ConfigPath)) return new List<HighlightRule>();
-                var json = System.IO.File.ReadAllText(ConfigPath);
+                if (!System.IO.File.Exists(configPath)) return new List<HighlightRule>();
+                var json = System.IO.File.ReadAllText(configPath);
                 return JsonSerializer.Deserialize<List<HighlightRule>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<HighlightRule>();
             }
             catch
             {
                 return new List<HighlightRule>();
             }
+        }
+
+        private static List<HighlightRule> LoadRules()
+        {
+            return LoadRules(ConfigPath);
         }
 
         public void Start() => _inner.Start();

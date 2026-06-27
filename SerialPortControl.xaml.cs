@@ -22,10 +22,6 @@ namespace backgroundControl
         private StringBuilder _allTerminalOutput = new StringBuilder();
         private StringBuilder _cleanOutput = new StringBuilder();
 
-        private static readonly Regex _ansiEscapeRegex = new Regex(@"\x1b\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
-        private static readonly Regex _ansiOSCRegex = new Regex(@"\x1b\][^\x07]*(\x07|\x1b\\)", RegexOptions.Compiled);
-        private static readonly Regex _controlCharRegex = new Regex(@"[\x00-\x08\x0B\x0C\x0E-\x1F]", RegexOptions.Compiled);
-
         public SerialPortControl()
         {
             InitializeComponent();
@@ -178,11 +174,7 @@ namespace backgroundControl
                 var proxy = new HighlightTerminalConnection(_terminalConnection);
                 proxy.OnRawOutput = text => { lock (_logLock) {
                     _allTerminalOutput.Append(text);
-                    string clean = _ansiEscapeRegex.Replace(text, "");
-                    clean = _ansiOSCRegex.Replace(clean, "");
-                    clean = _controlCharRegex.Replace(clean, "");
-                    clean = clean.Replace("\r\n", "\n").Replace("\r", "");
-                    _cleanOutput.Append(clean);
+                    _cleanOutput.Append(AnsiStripper.Strip(text));
                 } };
                 TerminalControl.Connection = proxy;
 

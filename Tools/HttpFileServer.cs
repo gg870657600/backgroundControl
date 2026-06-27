@@ -205,6 +205,7 @@ public class HttpFileServer : IDisposable
         }
 
         var contentType = ctx.Request.ContentType ?? "";
+        LogInfo($"Upload request: Content-Type='{contentType}', length={ctx.Request.ContentLength64}");
         var boundaryIdx = contentType.IndexOf("boundary=", StringComparison.OrdinalIgnoreCase);
         if (boundaryIdx < 0)
         {
@@ -236,16 +237,21 @@ public class HttpFileServer : IDisposable
 
         var savedCount = 0;
         var savedNames = new List<string>();
-        foreach (var (fileName, data) in MultipartParser.Parse(ms, boundary))
+        LogInfo($"Parse starting: boundary='{boundary}', stream len={ms.Length}");
+        var parts = MultipartParser.Parse(ms, boundary).ToList();
+        LogInfo($"Parse complete: {parts.Count} parts found");
+        foreach (var (fileName, data) in parts)
         {
-            if (string.IsNullOrEmpty(fileName)) continue;
-            // 文件名安全过滤：去除路径分隔符、相对路径
+            LogInfo($"Processing part: fileName='{fileName}', dataLen={data.Length}");
+            if (string.IsNullOrEmpty(fileName)) { LogInfo("Skipping: null or empty fileName"); continue; }
             var safeName = Path.GetFileName(fileName);
-            if (string.IsNullOrEmpty(safeName)) continue;
+            LogInfo($"safeName='{safeName}'");
+            if (string.IsNullOrEmpty(safeName)) { LogInfo("Skipping: null or empty safeName"); continue; }
 
             var dest = Path.Combine(targetDir, safeName);
-            // 防同名覆盖？这里直接覆盖，简化逻辑
+            LogInfo($"Writing to: {dest}");
             await File.WriteAllBytesAsync(dest, data);
+            LogInfo($"Write complete, Exists={File.Exists(dest)}");
             savedNames.Add(safeName);
             savedCount++;
         }
@@ -356,32 +362,32 @@ public class HttpFileServer : IDisposable
 
     // ==================== 路径安全 ====================
 
+    public static string ResolveSafePath(string rootDir, string userPath)
+    {
+        var decoded = HttpUtility.UrlDecode(userPath) ?? userPath;
+        var rel     = decoded.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var rootFull = GetRootFullPath(rootDir);
+        var combined = Path.GetFullPath(Path.Combine(rootFull, rel));
+        if (!combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase) &&
+            !combined.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Path traversal");
+        return combined;
+    }
+
+    public static string GetRootFullPath(string rootDir)
+    {
+        var full = Path.GetFullPath(rootDir);
+        return full.EndsWith(Path.DirectorySeparatorChar.ToString())
+            ? full
+            : full + Path.DirectorySeparatorChar;
+    }
+
     /// <summary>
     /// 解析用户路径为本地物理路径，并校验仍在 RootDir 内。
     /// </summary>
     private string ResolveSafePath(string userPath)
     {
-        var decoded = HttpUtility.UrlDecode(userPath) ?? userPath;
-        var rel     = decoded.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-
-        // 确保 root 以分隔符结尾，这样 Path.Combine/GetFullPath 在盘符根（"E:\"）上行为一致
-        var rootFull = Path.GetFullPath(_cfg.RootDir);
-        if (!rootFull.EndsWith(Path.DirectorySeparatorChar.ToString()))
-            rootFull += Path.DirectorySeparatorChar;
-        if (string.IsNullOrEmpty(rootFull))
-            rootFull = Path.GetPathRoot(Environment.CurrentDirectory)
-                ?? throw new InvalidOperationException("Cannot determine root path");
-
-        var combined = Path.GetFullPath(Path.Combine(rootFull, rel));
-
-        // rootFull 已有尾部分隔符，无需再加
-        if (!combined.Equals(rootFull, StringComparison.OrdinalIgnoreCase) &&
-            !combined.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
-        {
-            LogWarn($"路径越界拦截: url='{userPath}' rel='{rel}' root='{rootFull}' resolved='{combined}'");
-            throw new UnauthorizedAccessException("Path traversal");
-        }
-        return combined;
+        return ResolveSafePath(_cfg.RootDir, userPath);
     }
 
     // ==================== 目录 HTML ====================
@@ -530,24 +536,20 @@ internal static class MultipartParser
 {
     public static IEnumerable<(string FileName, byte[] Data)> Parse(Stream body, string boundary)
     {
-        using var reader = new BinaryReader(body, Encoding.UTF8, leaveOpen: true);
         var boundaryBytes = Encoding.ASCII.GetBytes(boundary);
 
-        // 跳到第一个 boundary
-        SkipUntilBoundary(reader, boundaryBytes);
+        SkipUntilBoundary(body, boundaryBytes);
 
         while (true)
         {
-            // 读取 part header
             var headerLines = new List<string>();
             string? line;
-            while (!string.IsNullOrEmpty(line = ReadLine(reader)))
+            while (!string.IsNullOrEmpty(line = ReadLine(body)))
             {
                 headerLines.Add(line);
             }
             if (headerLines.Count == 0) yield break;
 
-            // 解析 Content-Disposition
             string? fileName = null;
             foreach (var h in headerLines)
             {
@@ -560,30 +562,37 @@ internal static class MultipartParser
                         var end   = h.IndexOf('"', start);
                         if (end > start) fileName = h.Substring(start, end - start);
                     }
+                    else
+                    {
+                        fnIdx = h.IndexOf("filename=", StringComparison.OrdinalIgnoreCase);
+                        if (fnIdx >= 0)
+                        {
+                            var start = fnIdx + 9;
+                            var end   = h.IndexOfAny([';', ' '], start);
+                            if (end < 0) end = h.Length;
+                            fileName = h.Substring(start, end - start);
+                        }
+                    }
                 }
             }
-            if (fileName == null) { SkipUntilBoundary(reader, boundaryBytes); continue; }
+            if (fileName == null) { SkipUntilBoundary(body, boundaryBytes); continue; }
 
-            // 读取 part body（直到下一个 boundary）
             var dataMs = new MemoryStream();
-            var buf = new byte[81920];
             int boundaryMatchPos = 0;
             bool isLast = false;
             while (true)
             {
-                var b = reader.ReadByte();
+                var b = body.ReadByte();
                 if (b < 0) break;
-                // 边界匹配
                 if (b == boundaryBytes[boundaryMatchPos])
                 {
                     boundaryMatchPos++;
                     if (boundaryMatchPos == boundaryBytes.Length)
                     {
-                        // 读完整个 boundary 后看是 "--" 结尾还是 "\r\n" 后接下一段
-                        var next1 = reader.ReadByte();
-                        var next2 = reader.ReadByte();
+                        var next1 = body.ReadByte();
+                        var next2 = body.ReadByte();
                         if (next1 == '-' && next2 == '-') isLast = true;
-                        // 否则 next1=='\r' && next2=='\n'，进入下一段
+                        else if (next1 < 0) { dataMs.WriteByte((byte)b); boundaryMatchPos = 0; continue; }
                         break;
                     }
                 }
@@ -591,7 +600,6 @@ internal static class MultipartParser
                 {
                     if (boundaryMatchPos > 0)
                     {
-                        // 把已匹配的部分写回（注意：这部分可能是 boundary 开头但不完整）
                         dataMs.Write(boundaryBytes, 0, boundaryMatchPos);
                         boundaryMatchPos = 0;
                     }
@@ -599,7 +607,6 @@ internal static class MultipartParser
                 }
             }
 
-            // 去掉末尾的 \r\n（boundary 前的换行）
             var data = dataMs.ToArray();
             if (data.Length >= 2 && data[^2] == '\r' && data[^1] == '\n')
                 data = data.Take(data.Length - 2).ToArray();
@@ -607,27 +614,33 @@ internal static class MultipartParser
             yield return (fileName, data);
             if (isLast) yield break;
 
-            // 下一段
-            SkipUntilBoundary(reader, boundaryBytes);
-            if (reader.PeekChar() < 0) yield break;
+            SkipUntilBoundary(body, boundaryBytes);
+            if (body.ReadByte() < 0) yield break;
         }
     }
 
-    private static void SkipUntilBoundary(BinaryReader r, byte[] boundary)
+    private static void SkipUntilBoundary(Stream s, byte[] boundary)
     {
         int pos = 0;
         while (true)
         {
-            var b = r.ReadByte();
+            var b = s.ReadByte();
             if (b < 0) return;
             if (b == boundary[pos])
             {
                 pos++;
                 if (pos == boundary.Length)
                 {
-                    // 消费掉 boundary 行尾的 CRLF（或仅 LF），避免被 ReadLine 当成空 header 终止解析
-                    if (r.PeekChar() == '\r') r.ReadByte();
-                    if (r.PeekChar() == '\n') r.ReadByte();
+                    var b1 = s.ReadByte();
+                    if (b1 == '\r')
+                    {
+                        var b2 = s.ReadByte();
+                        if (b2 != '\n' && b2 >= 0) s.Seek(-1, SeekOrigin.Current);
+                    }
+                    else if (b1 >= 0)
+                    {
+                        s.Seek(-1, SeekOrigin.Current);
+                    }
                     return;
                 }
             }
@@ -638,12 +651,12 @@ internal static class MultipartParser
         }
     }
 
-    private static string ReadLine(BinaryReader r)
+    private static string ReadLine(Stream s)
     {
         var ms = new MemoryStream();
         while (true)
         {
-            var b = r.ReadByte();
+            var b = s.ReadByte();
             if (b < 0) break;
             if (b == '\n')
             {

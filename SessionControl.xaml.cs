@@ -59,24 +59,6 @@ namespace backgroundControl
         public StringBuilder _allTerminalOutput = new StringBuilder(); // 终端日志原始缓存
         private StringBuilder _cleanOutput = new StringBuilder();       // ANSI/控制字符已过滤，复制用
 
-        private static readonly Regex _ansiEscapeRegex = new Regex(@"\x1b\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
-        private static readonly Regex _ansiOSCRegex = new Regex(@"\x1b\][^\x07]*(\x07|\x1b\\)", RegexOptions.Compiled);
-        private static readonly Regex _controlCharRegex = new Regex(@"[\x00-\x08\x0B\x0C\x0E-\x1F]", RegexOptions.Compiled);
-
-        private static readonly HashSet<string> _linuxCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "cd","pwd","ls","ll","dir","cat","touch","cp","mv","rm","rmdir","mkdir",
-            "chmod","chown","chgrp","ln","find","grep","df","du","mount","umount",
-            "ps","top","htop","btop","free","uptime","who","w","id","uname","hostname",
-            "ping","ifconfig","ip","netstat","ss","traceroute","nslookup","dig","curl","wget",
-            "telnet","ssh","ftp","nload","iftop","tcpdump",
-            "kill","killall","systemctl","service","ps","pgrep","pkill",
-            "echo","tail","head","more","less","vi","vim","nano","sed","awk",
-            "tar","gzip","gunzip","zip","unzip",
-            "clear","reset","date","cal","watch","man","which","whereis","sh","bash",
-            "bsp","reboot"
-        };
-
         // Telnet 凭据与端口
         private const string TelnetDefaultUser     = "root";
         private const string TelnetDefaultPassword = "Changeme_123";
@@ -333,16 +315,12 @@ namespace backgroundControl
                     _sshClient = client;
                     _isConnected = true;
                     _globalShell = client.CreateShellStream("xterm-256color", 80, 24, 800, 600, 1024 * 1024);
-                    var conn = new SshTerminalConnection(_globalShell,this);
+                    var conn = new SshTerminalConnection(new ShellStreamAdapter(_globalShell), cmd => Dispatcher.InvokeAsync(() => AutoSwitchByFullCommand(cmd)));
                     _terminalConnection = conn;
                     var proxy = new HighlightTerminalConnection(conn);
                     proxy.OnRawOutput = text => { lock (_logLock) {
                         _allTerminalOutput.Append(text);
-                        string clean = _ansiEscapeRegex.Replace(text, "");
-                        clean = _ansiOSCRegex.Replace(clean, "");
-                        clean = _controlCharRegex.Replace(clean, "");
-                        clean = clean.Replace("\r\n", "\n").Replace("\r", "");
-                        _cleanOutput.Append(clean);
+                        _cleanOutput.Append(AnsiStripper.Strip(text));
                     } };
                     TerminalControl.Connection = proxy;
                     _globalShell.WriteLine("export TMOUT=0");
@@ -1009,54 +987,12 @@ namespace backgroundControl
         #region 命令匹配
         private string MatchCommand(string userInput)
         {
-            string trimmed = userInput.Trim();
-            if (IsDirectCommand(trimmed)) return trimmed;
-
-            foreach (var p in _commandPatterns)
-            {
-                var m = p.Regex.Match(trimmed);
-                if (m.Success) return p.CommandBuilder(m);
-            }
-
-            string normalized = trimmed.Replace(" ", "").ToLowerInvariant();
-
-            // 统一打分：精确匹配 100，包含匹配 60+关键词长度
-            var scored = _intentRules
-                .Select(rule => new
-                {
-                    Rule = rule,
-                    Matches = rule.NormalizedKeywords
-                        .Where(kw => kw.Length > 0)
-                        .Select(kw => normalized == kw ? 100
-                                   : normalized.Contains(kw) ? 60 + kw.Length
-                                   : 0)
-                        .Where(s => s > 0)
-                        .ToList()
-                })
-                .Where(x => x.Matches.Count > 0)
-                .Select(x => new
-                {
-                    x.Rule,
-                    BestScore = x.Matches.Max(),
-                    TotalScore = x.Matches.Sum()
-                })
-                .OrderByDescending(x => x.BestScore)
-                .ThenByDescending(x => x.TotalScore)
-                .ToList();
-
-            var best = scored.FirstOrDefault();
-            if (best != null) return best.Rule.Command;
-
-            return "UNKNOWN";
+            return CommandClassifier.MatchCommand(userInput, _commandPatterns, _intentRules);
         }
 
         private bool IsDirectCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return false;
-
-            // 匹配所有你的设备私有命令：get-xxx / set-xxx / dump-xxx / calibre-* 等
-            var reg = new Regex(@"^(get|set|dump|calibre)-", RegexOptions.IgnoreCase);
-            return reg.IsMatch(input);
+            return CommandClassifier.IsDirectCommand(input);
         }
         #endregion
 
@@ -1293,34 +1229,9 @@ namespace backgroundControl
             });
         }
 
-        private bool IsLinuxCommand(string i)
-        {
-            if (string.IsNullOrWhiteSpace(i)) return false;
-            var first = i.Trim().Split().FirstOrDefault();
-            return _linuxCommands.Contains(first);
-        }
-
-        /// <summary>
-        /// 统一命令分类：判定是 Linux 命令还是私有命令，并产出最终待发送命令。
-        /// 让 SendButton_Click 与 AutoSwitchByFullCommand 走同一套规则。
-        /// </summary>
         private (bool isLinux, string finalCmd) ClassifyCommand(string input)
         {
-            if (IsLinuxCommand(input))
-                return (true, input);
-
-            string finalCmd = MatchCommand(input);
-
-            if (finalCmd == "UNKNOWN")
-            {
-                // 规则未匹配：fallback 到原 input
-                finalCmd = input;
-                // 仅当它看起来像 get-/set-/dump-/calibre- 私有命令时才算"非 linux"
-                return (!IsDirectCommand(input), finalCmd);
-            }
-
-            // 规则命中：转换后命令视作私有命令（telnet 环境）
-            return (false, finalCmd);
+            return CommandClassifier.ClassifyCommand(input, _commandPatterns, _intentRules);
         }
 
         /// <summary>
@@ -1913,8 +1824,8 @@ namespace backgroundControl
     /// </summary>
     public class SshTerminalConnection : ITerminalConnection
     {
-        private readonly ShellStream _stream;
-        private readonly SessionControl _sessionControl;
+        private readonly IShellStream _stream;
+        private readonly Action<string>? _commandHandler;
 
         public event EventHandler<TerminalOutputEventArgs>? TerminalOutput;
 
@@ -1922,10 +1833,10 @@ namespace backgroundControl
 
         public bool HasPendingInput => _inputBuffer.Length > 0;
 
-        public SshTerminalConnection(ShellStream stream, SessionControl control)
+        public SshTerminalConnection(IShellStream stream, Action<string>? commandHandler = null)
         {
             _stream = stream;
-            _sessionControl = control;
+            _commandHandler = commandHandler;
         }
 
         public void WriteLog(string text)
@@ -1977,12 +1888,7 @@ namespace backgroundControl
 
                         if (!string.IsNullOrWhiteSpace(cmd))
                         {
-                            _sessionControl.Dispatcher.InvokeAsync(async () =>
-                            {
-                                await _sessionControl.AutoSwitchByFullCommand(cmd);
-                            });
-                            
-
+                            _commandHandler?.Invoke(cmd);
                         }
                     }
                     // 跳过 \n（因为 \r 已经处理了完整的换行）
@@ -2015,27 +1921,6 @@ namespace backgroundControl
         }
 
         public void Resize(uint rows, uint columns) { }
-    }
-
-    public class CommandPattern
-    {
-        public string Name { get; set; }
-        public Regex Regex { get; set; }
-        public Func<Match, string> CommandBuilder { get; set; }
-    }
-
-    public class IntentRule
-    {
-        public List<string> Keywords { get; set; }
-        public List<string> NormalizedKeywords { get; set; }
-        public string Command { get; set; }
-
-        public IntentRule(string keywordsCombined, string command)
-        {
-            Keywords = keywordsCombined.Split(new[] { ' ', '、' }, System.StringSplitOptions.RemoveEmptyEntries).ToList();
-            NormalizedKeywords = Keywords.Select(k => Regex.Replace(k, @"\s+", "").ToLowerInvariant()).ToList();
-            Command = command;
-        }
     }
 
     public class RuleItem

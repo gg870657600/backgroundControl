@@ -150,7 +150,7 @@ public class IperfRunner : IDisposable
     private static readonly Regex JitterRegex = new(@"([\d.]+)\s+ms", RegexOptions.Compiled);
     private static readonly Regex LossRegex   = new(@"(\d+)/(\d+)\s*\(([\d.]+)%\)", RegexOptions.Compiled);
 
-    private void TryParseTextInterval(string line)
+    public void TryParseTextInterval(string line)
     {
         var m = IntervalRegex.Match(line);
         if (!m.Success) return;
@@ -200,7 +200,7 @@ public class IperfRunner : IDisposable
         OnInterval?.Invoke(data);
     }
 
-    private void ParseFinalResult(string output)
+    public void ParseFinalResult(string output)
     {
         var result = new IperfFinalResult();
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -219,7 +219,7 @@ public class IperfRunner : IDisposable
             OnFinal?.Invoke(result);
     }
 
-    private static double ParseBitsPerSec(string value, string unit)
+    public static double ParseBitsPerSec(string value, string unit)
     {
         var v = double.Parse(value);
         return unit.ToLowerInvariant() switch

@@ -19,6 +19,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="BackgroundControl.Tests\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="CI.Microsoft.Terminal.Wpf" Version="1.22.250204002" />
 		<PackageReference Include="SSH.NET" Version="2025.1.0" />
 		<PackageReference Include="System.IO.Ports" Version="10.0.7" />
