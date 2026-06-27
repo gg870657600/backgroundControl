@@ -77,6 +77,16 @@ public class TelnetConnectionTests : IDisposable
         response.Should().NotBeNullOrEmpty();
     }
 
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task ConnectToNonexistentDevice_Fails()
+    {
+        using var client = new TcpClient();
+        var ex = await Record.ExceptionAsync(() => client.ConnectAsync("192.168.1.234", 23)
+            .WaitAsync(TimeSpan.FromSeconds(5)));
+        ex.Should().NotBeNull();
+    }
+
     public void Dispose()
     {
         try { _client?.Close(); } catch { }

@@ -104,6 +104,19 @@ public class SshSessionTests : IDisposable
         await Task.Delay(500);
     }
 
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void ConnectToNonexistentDevice_ThrowsOrTimesOut()
+    {
+        var ci = new ConnectionInfo("192.168.1.234", 22, "root",
+            new PasswordAuthenticationMethod("root", "wrong"));
+        ci.Timeout = TimeSpan.FromSeconds(5);
+        using var client = new SshClient(ci);
+
+        Action act = () => client.Connect();
+        act.Should().Throw<Exception>();
+    }
+
     public void Dispose()
     {
         try { _shell?.Dispose(); } catch { }
