@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using backgroundControl.Tools;
+using Xunit.Sdk;
 
 public class TelnetConnectionTests : IDisposable
 {
@@ -45,33 +47,28 @@ public class TelnetConnectionTests : IDisposable
     [Trait("Category", "Integration")]
     public async Task TelnetConnectAndSend_ReceivesResponse()
     {
-        if (!_connected) return;
+        if (!_connected) throw new SkipTestException("设备未连接");
 
         var stream = _client!.GetStream();
         stream.ReadTimeout = 3000;
         stream.WriteTimeout = 3000;
 
-        // 丢弃 telnet 协商字节（0xFF 开头的 IAC 序列）
         var buf = new byte[4096];
-        try { await stream.ReadAsync(buf, 0, buf.Length); } catch { }
+        try { await stream.ReadAsync(buf, 0, buf.Length); } catch (Exception ex) { Debug.WriteLine($"协商读取（可忽略）: {ex.Message}"); }
 
-        // 发送 login:user,pass（大部分华为/中兴 ONU 设备支持这种一行登录格式）
         var loginBytes = Encoding.UTF8.GetBytes($"login:{_user},{_pass}\r\n");
         await stream.WriteAsync(loginBytes, 0, loginBytes.Length);
         await Task.Delay(1500);
 
-        // 再次丢弃登录后的提示输出
-        try { await stream.ReadAsync(buf, 0, buf.Length); } catch { }
+        try { await stream.ReadAsync(buf, 0, buf.Length); } catch (Exception ex) { Debug.WriteLine($"登录输出读取（可忽略）: {ex.Message}"); }
 
-        // 发送命令
         var cmd = Encoding.UTF8.GetBytes("get-ne-type\r\n");
         await stream.WriteAsync(cmd, 0, cmd.Length);
         await Task.Delay(3000);
 
-        // 读取命令输出
         var respBuf = new byte[8192];
         var n = 0;
-        try { n = await stream.ReadAsync(respBuf, 0, respBuf.Length); } catch { }
+        try { n = await stream.ReadAsync(respBuf, 0, respBuf.Length); } catch (Exception ex) { Debug.WriteLine($"命令响应读取: {ex.Message}"); }
 
         var response = Encoding.UTF8.GetString(respBuf, 0, n);
         response.Should().NotBeNullOrEmpty();

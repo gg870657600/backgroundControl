@@ -102,13 +102,16 @@ public class IperfRunnerTests : IDisposable
     [Trait("Category", "Integration")]
     public async Task StartStop_RapidCycles_NoCrash()
     {
+        int intervalCount = 0;
         for (int i = 0; i < 3; i++)
         {
             using var runner = new IperfRunner();
+            runner.OnInterval += _ => intervalCount++;
             runner.StartClient("127.0.0.1", _port, duration: 1, parallel: 1, udp: false, bandwidth: "", interval: 1);
             await Task.Delay(500);
             runner.Stop();
         }
+        intervalCount.Should().BeGreaterThan(0, "各周期应至少产生一个 interval 数据");
     }
 
     [Fact]

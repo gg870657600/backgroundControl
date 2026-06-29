@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Renci.SshNet;
 using backgroundControl.Tools;
+using Xunit.Sdk;
 
 public class SshSessionTests : IDisposable
 {
@@ -62,7 +63,7 @@ public class SshSessionTests : IDisposable
     [Trait("Category", "Integration")]
     public async Task ConnectToDevice_ShellStream_CanRead()
     {
-        if (!_connected) return;
+        if (!_connected) throw new SkipTestException("设备未连接");
 
         _shell.WriteLine("echo ssh-test-ok");
         await Task.Delay(1000);
@@ -74,7 +75,7 @@ public class SshSessionTests : IDisposable
     [Trait("Category", "Integration")]
     public async Task LinuxCommand_Ls_ExecutesViaSsh()
     {
-        if (!_connected) return;
+        if (!_connected) throw new SkipTestException("设备未连接");
 
         _shell.WriteLine("ls /");
         await Task.Delay(1000);
@@ -86,7 +87,7 @@ public class SshSessionTests : IDisposable
     [Trait("Category", "Integration")]
     public async Task SwitchToTelnet_SendsCommandAndGetsResponse()
     {
-        if (!_connected) return;
+        if (!_connected) throw new SkipTestException("设备未连接");
 
         _shell.WriteLine("telnet 0 2323");
         await Task.Delay(2000);

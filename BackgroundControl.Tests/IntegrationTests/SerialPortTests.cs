@@ -1,5 +1,6 @@
 using System.IO.Ports;
 using System.Diagnostics;
+using Xunit.Sdk;
 
 public class SerialPortTests : IDisposable
 {
@@ -22,7 +23,7 @@ public class SerialPortTests : IDisposable
     [Trait("Category", "Integration")]
     public void OpenPort_Succeeds()
     {
-        if (!_portsAvailable) return;
+        if (!_portsAvailable) throw new SkipTestException("无可用串口");
 
         using var port = new SerialPort(_portName, 115200);
         port.Open();
@@ -34,7 +35,7 @@ public class SerialPortTests : IDisposable
     [Trait("Category", "Integration")]
     public void OpenPort_WithDifferentBaudRates_Succeeds()
     {
-        if (!_portsAvailable) return;
+        if (!_portsAvailable) throw new SkipTestException("无可用串口");
 
         foreach (var baud in new[] { 9600, 19200, 115200 })
         {
@@ -49,7 +50,7 @@ public class SerialPortTests : IDisposable
     [Trait("Category", "Integration")]
     public void OpenPort_ReadWriteTimeout_DoesNotThrow()
     {
-        if (!_portsAvailable) return;
+        if (!_portsAvailable) throw new SkipTestException("无可用串口");
 
         using var port = new SerialPort(_portName, 115200)
         {
@@ -65,7 +66,7 @@ public class SerialPortTests : IDisposable
     [Trait("Category", "Integration")]
     public void ClosePort_IsOpenFalse()
     {
-        if (!_portsAvailable) return;
+        if (!_portsAvailable) throw new SkipTestException("无可用串口");
 
         using var port = new SerialPort(_portName, 115200);
         port.Open();
@@ -78,7 +79,7 @@ public class SerialPortTests : IDisposable
     [Trait("Category", "Integration")]
     public void Open_Close_Reopen_Succeeds()
     {
-        if (!_portsAvailable) return;
+        if (!_portsAvailable) throw new SkipTestException("无可用串口");
 
         using var port = new SerialPort(_portName, 115200);
         port.Open();

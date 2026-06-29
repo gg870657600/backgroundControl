@@ -19,7 +19,6 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using WinSCP;
 using backgroundControl.Tools;
 
 namespace backgroundControl
@@ -54,7 +53,7 @@ namespace backgroundControl
         private bool _isInCmdMode;
         private SftpClient? _sftpClient;
         private string _currentRemotePath = "/";
-        private WinSCP.Session? _winscpSession;
+        private readonly IRemoteFileService _fileService;
         private readonly object _logLock = new();
         public StringBuilder _allTerminalOutput = new StringBuilder(); // 终端日志原始缓存
         private StringBuilder _cleanOutput = new StringBuilder();       // ANSI/控制字符已过滤，复制用
@@ -87,8 +86,11 @@ namespace backgroundControl
         }
 
 
-        public SessionControl()
+        public SessionControl() : this(new WinSCPFileService()) { }
+
+        public SessionControl(IRemoteFileService fileService)
         {
+            _fileService = fileService;
             InitializeComponent();
             Loaded += (_, _) => EnsureMouseWheelHook();
             PasswordBox.Password = "andisat";
@@ -348,15 +350,10 @@ namespace backgroundControl
                 }
 
                 // 2. 尝试 SFTP + SCP 回退（最常用）
-                bool sftpSuccess = TryConnectWinSCP(targetIp, port, username, password, out _winscpSession);
-                if (!sftpSuccess)
-                {
-                    _winscpSession = null;
-                }
-                else
+                bool sftpSuccess = _fileService.Connect(targetIp, port, username, password);
+                if (sftpSuccess)
                 {
                     LoadRemoteDirectory("/");
-
                 }
                 // 连接成功且 SFTP 可用时
                 Dispatcher.Invoke(() =>
@@ -394,104 +391,17 @@ namespace backgroundControl
             var scrollViewer = FindScrollViewer(TerminalControl);
             scrollViewer?.ScrollToEnd();
         }
-        /// <summary>
-        /// 尝试使用 WinSCP 连接，支持 SFTP + SCP 回退（自动处理不支持 SFTP 的设备）
-        /// </summary>
-        private bool TryConnectWinSCP(string host, int port, string user, string pass, out WinSCP.Session session)
-        {
-            session = null;
-            var sessionOptions = new SessionOptions
-            {
-                Protocol = Protocol.Sftp,          // 先尝试 SFTP
-                HostName = host,
-                PortNumber = port,
-                UserName = user,
-                Password = pass,
-            };
-
-            // 👇 添加这行代码，强制启用 UTF-8
-            sessionOptions.AddRawSettings("Utf", "1");
-
-            // 获取主机密钥指纹（首次连接时自动信任，生产环境建议保存）
-            using (var tempSession = new WinSCP.Session())
-            {
-                try
-                {
-                    string fingerprint = tempSession.ScanFingerprint(sessionOptions, "SHA-256");
-                    sessionOptions.SshHostKeyFingerprint = fingerprint;
-                }
-                catch
-                {
-                    // 如果无法获取指纹（例如协议错误），继续尝试，不阻断
-                }
-            }
-
-            // 关键：启用 SCP 回退，解决 'exit status 127' 错误
-            sessionOptions.AddRawSettings("FSProtocol", "1");  // 1 = SFTP(SCP fallback)
-
-            session = new WinSCP.Session();
-            try
-            {
-                session.Open(sessionOptions);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"WinSCP 连接失败 (SFTP+fallback): {ex.Message}");
-                session?.Dispose();
-                session = null;
-
-                // 可选：尝试纯 FTP（如果设备支持，需指定不同端口，通常为21且无加密）
-                // 这里给出示例，但一般卫星设备很少开放 FTP，可注释
-                // return TryConnectFtp(host, port, user, pass, out session);
-                return false;
-            }
-        }
         #endregion
         #region 左侧文件目录
         private void LoadRemoteDirectory(string path)
         {
-            //实时更新界面上的路径
             CurrentPathTextBox.Text = path;
-
-            if (_winscpSession == null || !_winscpSession.Opened) return;
+            if (!_fileService.IsConnected) return;
 
             try
             {
                 _currentRemotePath = path;
-                var directoryInfo = _winscpSession.ListDirectory(path);
-                var displayList = new List<RemoteFileInfo>();
-
-                foreach (var file in directoryInfo.Files)
-                {
-                    if (file.IsDirectory)
-                    {
-                        if (file.Name != "." && file.Name != "..")
-                        {
-                            displayList.Add(new RemoteFileInfo
-                            {
-                                Name = file.Name + "/",
-                                Size = "-",
-                                ModifyTime = file.LastWriteTime,
-                                FullPath = file.FullName,
-                                IsDirectory = true
-                            });
-                        }
-                    }
-                    else
-                    {
-                        displayList.Add(new RemoteFileInfo
-                        {
-                            Name = file.Name,
-                            Size = file.Length < 1024 ? $"{file.Length} B" : $"{file.Length / 1024} KB",
-                            ModifyTime = file.LastWriteTime,
-                            FullPath = file.FullName,
-                            IsDirectory = false
-                        });
-                    }
-                }
-
-                FileListView.ItemsSource = displayList;
+                FileListView.ItemsSource = _fileService.ListDirectory(path);
                 UpdateBreadcrumb(path);
             }
             catch (Exception ex)
@@ -500,15 +410,7 @@ namespace backgroundControl
             }
         }
 
-        // 辅助类
-        public class RemoteFileInfo
-        {
-            public string Name { get; set; }
-            public string Size { get; set; }
-            public DateTime ModifyTime { get; set; }
-            public string FullPath { get; set; }
-            public bool IsDirectory { get; set; }
-        }
+        // 辅助类 -> RemoteFileInfo.cs
 
         private void UpdateBreadcrumb(string path)
         {
@@ -581,7 +483,7 @@ namespace backgroundControl
             string[]? files = e.Data.GetData(System.Windows.DataFormats.FileDrop) as string[];
             if (files == null || files.Length == 0) return;
 
-            if (_winscpSession == null || !_winscpSession.Opened)
+            if (!_fileService.IsConnected)
             {
                 System.Windows.MessageBox.Show("尚未连接远程设备，请先连接", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -597,8 +499,6 @@ namespace backgroundControl
             int failCount = 0;
             var errors = new List<string>();
 
-            var transferOptions = new TransferOptions { TransferMode = TransferMode.Binary };
-
             await Task.Run(() =>
             {
                 foreach (string localPath in files)
@@ -610,17 +510,13 @@ namespace backgroundControl
                         {
                             string dirName = new DirectoryInfo(localPath).Name;
                             remotePath = _currentRemotePath.TrimEnd('/') + "/" + dirName;
-                            var result = _winscpSession.PutFiles(localPath, remotePath + "/*", false, transferOptions);
-                            if (!result.IsSuccess)
-                                throw new Exception(result.Failures.FirstOrDefault()?.Message);
+                            _fileService.UploadFile(localPath, remotePath + "/*");
                         }
                         else
                         {
                             string fileName = Path.GetFileName(localPath);
                             remotePath = _currentRemotePath.TrimEnd('/') + "/" + fileName;
-                            var result = _winscpSession.PutFiles(localPath, remotePath, false, transferOptions);
-                            if (!result.IsSuccess)
-                                throw new Exception(result.Failures.FirstOrDefault()?.Message);
+                            _fileService.UploadFile(localPath, remotePath);
                         }
                         successCount++;
                     }
@@ -701,7 +597,7 @@ namespace backgroundControl
         {
             var file = GetSingleSelectedFile();
             if (file == null || file.IsDirectory) return;
-            if (_winscpSession is not { Opened: true })
+            if (!_fileService.IsConnected)
             { System.Windows.MessageBox.Show("未连接"); return; }
 
             try
@@ -711,8 +607,7 @@ namespace backgroundControl
                 while (File.Exists(tmp))
                     tmp = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(file.Name)}_{idx++}{Path.GetExtension(file.Name)}");
 
-                var opts = new TransferOptions { TransferMode = TransferMode.Binary };
-                _winscpSession.GetFiles(file.FullPath, tmp, false, opts);
+                _fileService.DownloadFile(file.FullPath, tmp);
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(tmp) { UseShellExecute = true });
             }
             catch (Exception ex)
@@ -747,8 +642,7 @@ namespace backgroundControl
             {
                 try
                 {
-                    var transferOptions = new TransferOptions { TransferMode = TransferMode.Binary };
-                    _winscpSession.GetFiles(remotePath, dlg.FileName, false, transferOptions);
+                    _fileService.DownloadFile(remotePath, dlg.FileName);
                     System.Windows.MessageBox.Show("下载完成");
                 }
                 catch (Exception ex)
@@ -767,8 +661,6 @@ namespace backgroundControl
             int completed = 0;
             var errors = new List<string>();
 
-            var transferOptions = new TransferOptions { TransferMode = TransferMode.Binary };
-
             await Task.Run(() =>
             {
                 foreach (string localFile in dlg.FileNames)
@@ -776,7 +668,7 @@ namespace backgroundControl
                     try
                     {
                         string remoteFile = _currentRemotePath.TrimEnd('/') + "/" + Path.GetFileName(localFile);
-                        _winscpSession.PutFiles(localFile, remoteFile, false, transferOptions);
+                        _fileService.UploadFile(localFile, remoteFile);
                         completed++;
                         Dispatcher.Invoke(() => UpdateProgress($"已上传 {completed}/{total}", (int)((completed * 100) / total)));
                     }
@@ -812,8 +704,6 @@ namespace backgroundControl
                 int completed = 0;
                 var errors = new List<string>();
 
-                var transferOptions = new TransferOptions { TransferMode = TransferMode.Binary };
-
                 await Task.Run(() =>
                 {
                     foreach (RemoteFileInfo item in selectedItems)
@@ -825,12 +715,12 @@ namespace backgroundControl
                             {
                                 localPath = Path.Combine(localRoot, item.Name.TrimEnd('/'));
                                 string remoteDir = item.FullPath.TrimEnd('/') + "/*";
-                                _winscpSession.GetFiles(remoteDir, localPath, false, transferOptions);
+                                _fileService.DownloadFile(remoteDir, localPath);
                             }
                             else
                             {
                                 localPath = Path.Combine(localRoot, item.Name);
-                                _winscpSession.GetFiles(item.FullPath, localPath, false, transferOptions);
+                                _fileService.DownloadFile(item.FullPath, localPath);
                             }
                             completed++;
                             Dispatcher.Invoke(() => UpdateProgress($"已下载 {completed}/{total}", (int)((completed * 100) / total)));
@@ -871,7 +761,7 @@ namespace backgroundControl
             {
                 try
                 {
-                    _winscpSession.RemoveFiles(item.FullPath);
+                    _fileService.RemoveFiles(item.FullPath);
                     successCount++;
                 }
                 catch (Exception ex)
@@ -894,7 +784,6 @@ namespace backgroundControl
         {
             int success = 0, fail = 0;
             var errors = new List<string>();
-            var transferOptions = new TransferOptions { TransferMode = TransferMode.Binary };
             await Task.Run(() =>
             {
                 foreach (var file in files)
@@ -902,9 +791,7 @@ namespace backgroundControl
                     try
                     {
                         string localPath = System.IO.Path.Combine(localRoot, file.Name);
-                        var result = _winscpSession.GetFiles(file.FullPath, localPath, false, transferOptions);
-                        if (!result.IsSuccess)
-                            throw new Exception(result.Failures.FirstOrDefault()?.Message);
+                        _fileService.DownloadFile(file.FullPath, localPath);
                         success++;
                     }
                     catch (Exception ex)
@@ -1153,15 +1040,7 @@ namespace backgroundControl
 
         private void DisconnectButton_Click(object sender, RoutedEventArgs e)
         {
-
-            // 关闭 WinSCP 文件传输会话
-            if (_winscpSession != null)
-            {
-                if (_winscpSession.Opened)
-                    _winscpSession.Close();
-                _winscpSession.Dispose();
-                _winscpSession = null;
-            }
+            _fileService.Disconnect();
 
             // 关闭 SSH 会话
             _sshClient?.Disconnect();
@@ -1343,15 +1222,7 @@ namespace backgroundControl
             {
                 if (_isLooping) Dispatcher.Invoke(() => StopLoop());
                 StopKeepAliveTimer();
-
-                // 关闭 WinSCP
-                if (_winscpSession != null)
-                {
-                    if (_winscpSession.Opened)
-                        _winscpSession.Close();
-                    _winscpSession.Dispose();
-                    _winscpSession = null;
-                }
+                _fileService.Disconnect();
 
                 // 关闭 SSH
                 if (_sshClient != null)
