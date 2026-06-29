@@ -76,35 +76,56 @@ public partial class TelnetControl : IDisposable
             _readerThread.Start();
 
             if (!string.IsNullOrEmpty(username))
-                await AutoLoginAsync(username, password);
+            {
+                var authTcs = new TaskCompletionSource();
+                EventHandler<TerminalOutputEventArgs>? handler = null;
+                handler = (_, args) =>
+                {
+                    if (args.Data.Contains("Authentication fail", StringComparison.OrdinalIgnoreCase) ||
+                        args.Data.Contains("Login incorrect", StringComparison.OrdinalIgnoreCase) ||
+                        args.Data.Contains("denied", StringComparison.OrdinalIgnoreCase))
+                        authTcs.TrySetResult();
+                };
+                _terminalConnection.TerminalOutput += handler;
+
+                await Task.Delay(500);
+                var loginBytes = Encoding.ASCII.GetBytes($"{username}\r\n");
+                await _stream!.WriteAsync(loginBytes, 0, loginBytes.Length);
+                await Task.Delay(300);
+                var passBytes = Encoding.ASCII.GetBytes($"{password}\r\n");
+                await _stream!.WriteAsync(passBytes, 0, passBytes.Length);
+
+                var winner = await Task.WhenAny(authTcs.Task, Task.Delay(2000));
+                _terminalConnection.TerminalOutput -= handler;
+
+                if (winner == authTcs.Task)
+                {
+                    _isRunning = false;
+                    try { _stream?.Close(); } catch { }
+                    try { _tcpClient?.Close(); } catch { }
+                    _readerThread?.Join(500);
+                    StatusText.Text = "❌ 认证失败";
+                    StatusText.Foreground = System.Windows.Media.Brushes.Red;
+                    ConnectButton.IsEnabled = true;
+                    DisconnectButton.IsEnabled = false;
+                    return;
+                }
+            }
 
             SshHistoryManager.RecordConnection(host, port, username, password, "Telnet");
 
             var tab = DataContext as TabItemViewModel;
-            Dispatcher.Invoke(() =>
-            {
-                StatusText.Text = "✅ 已连接";
-                StatusText.Foreground = System.Windows.Media.Brushes.Green;
-                ConnectButton.IsEnabled = false;
-                DisconnectButton.IsEnabled = true;
-                if (tab != null)
-                    tab.Header = $"Telnet - {host}:{port}";
-            });
+            StatusText.Text = "✅ 已连接";
+            StatusText.Foreground = System.Windows.Media.Brushes.Green;
+            ConnectButton.IsEnabled = false;
+            DisconnectButton.IsEnabled = true;
+            if (tab != null)
+                tab.Header = $"Telnet {host}";
         }
         catch (Exception ex)
         {
             System.Windows.MessageBox.Show($"连接失败: {ex.Message}");
         }
-    }
-
-    private async Task AutoLoginAsync(string username, string password)
-    {
-        await Task.Delay(500);
-        var loginBytes = Encoding.ASCII.GetBytes($"{username}\r\n");
-        await _stream!.WriteAsync(loginBytes, 0, loginBytes.Length);
-        await Task.Delay(300);
-        var passBytes = Encoding.ASCII.GetBytes($"{password}\r\n");
-        await _stream!.WriteAsync(passBytes, 0, passBytes.Length);
     }
 
     private void ReaderLoop()

@@ -749,7 +749,11 @@ namespace backgroundControl
                 return;
             }
 
-            if (System.Windows.MessageBox.Show($"确定删除选中的 {selectedItems.Count} 个项目吗？\n目录将被递归删除，不可恢复！", "确认删除",
+            bool hasDir = selectedItems.Cast<RemoteFileInfo>().Any(i => i.IsDirectory);
+            string warnMsg = hasDir
+                ? "包含目录，将被递归删除，不可恢复！"
+                : "文件将被永久删除，不可恢复！";
+            if (System.Windows.MessageBox.Show($"确定删除选中的 {selectedItems.Count} 个项目吗？\n{warnMsg}", "确认删除",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
                 return;
 

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Terminal.Wpf;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Linq;
 using System.Windows.Media;
 using backgroundControl.Tools;
@@ -22,11 +23,36 @@ namespace backgroundControl
         private StringBuilder _allTerminalOutput = new StringBuilder();
         private StringBuilder _cleanOutput = new StringBuilder();
 
+        private const int WM_DEVICECHANGE = 0x0219;
+
         public SerialPortControl()
         {
             InitializeComponent();
             InitSerialOption();
-            Loaded += (_, _) => backgroundControl.Tools.TerminalFontZoom.Instance.Register(TerminalControl, Dispatcher);
+            RefreshPortList();
+            Loaded += (_, _) =>
+            {
+                backgroundControl.Tools.TerminalFontZoom.Instance.Register(TerminalControl, Dispatcher);
+                if (PresentationSource.FromVisual(this) is HwndSource hwnd)
+                    hwnd.AddHook(WndProc);
+            };
+        }
+
+        private void RefreshPortList()
+        {
+            var ports = SerialPort.GetPortNames();
+            string? previous = Cmb_PortName.SelectedItem?.ToString();
+            Cmb_PortName.Items.Clear();
+            foreach (var p in ports) Cmb_PortName.Items.Add(p);
+            if (previous != null && ports.Contains(previous))
+                Cmb_PortName.SelectedItem = previous;
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_DEVICECHANGE)
+                Dispatcher.InvokeAsync(RefreshPortList);
+            return IntPtr.Zero;
         }
 
         // 所有用户输入通过此方法发送到串口，不再本地回显
@@ -135,7 +161,6 @@ namespace backgroundControl
 
         private void InitSerialOption()
         {
-            foreach (var port in SerialPort.GetPortNames()) Cmb_PortName.Items.Add(port);
             Cmb_BaudRate.Items.Add(4800); Cmb_BaudRate.Items.Add(9600); Cmb_BaudRate.Items.Add(19200); Cmb_BaudRate.Items.Add(38400); Cmb_BaudRate.Items.Add(57600); Cmb_BaudRate.Items.Add(115200);
             Cmb_BaudRate.SelectedItem = 115200;
             Cmb_DataBits.Items.Add(5); Cmb_DataBits.Items.Add(6); Cmb_DataBits.Items.Add(7); Cmb_DataBits.Items.Add(8); Cmb_DataBits.SelectedItem = 8;

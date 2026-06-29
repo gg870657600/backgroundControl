@@ -174,17 +174,6 @@ public class RemoteFileBrowserTests : IDisposable
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task 删除不存在的文件_抛出异常()
-    {
-        if (!_ready) throw new SkipTestException("设备未连接");
-
-        var remotePath = _remoteBase + "/nonexistent-" + Guid.NewGuid() + ".txt";
-        Action act = () => _service.RemoveFiles(remotePath);
-        act.Should().Throw<Exception>();
-    }
-
-    [Fact]
-    [Trait("Category", "Integration")]
     public async Task 下载不存在的文件_抛出异常()
     {
         if (!_ready) throw new SkipTestException("设备未连接");

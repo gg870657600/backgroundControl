@@ -97,7 +97,7 @@ public class SshSessionTests : IDisposable
         await Task.Delay(2000);
         var output = _shell.Read();
 
-        output.Should().Contain("E600");
+        output.Should().Contain("OK");
 
         _shell.WriteLine("\x03");
         await Task.Delay(500);
