@@ -82,4 +82,62 @@ public class CommandClassificationTests
         isLinux.Should().BeTrue();
         finalCmd.Should().Be("foobar");
     }
+
+    public static IEnumerable<object[]> GetSwitchDecisionData =>
+        new List<object[]>
+        {
+            // cmd            inTelnet  needsSwitch  toTelnet  finalCmd
+            new object[] { "ls",          false, false,     false,    "ls"           },
+            new object[] { "ls",          true,  true,      false,    "ls"           },
+            new object[] { "get-ne-type", false, true,      true,     "get-ne-type"  },
+            new object[] { "get-ne-type", true,  false,     true,     "get-ne-type"  },
+            new object[] { "foobar",      false, false,     false,    "foobar"       },
+            new object[] { "foobar",      true,  true,      false,    "foobar"       },
+        };
+
+    [Theory]
+    [MemberData(nameof(GetSwitchDecisionData))]
+    public void 切换决策矩阵_六种组合全部正确(string cmd, bool inTelnet, bool expectedNeedsSwitch, bool expectedToTelnet, string expectedFinalCmd)
+    {
+        var patterns = new List<CommandPattern>();
+        var rules = new List<IntentRule>();
+
+        var (needsSwitch, toTelnet, finalCmd) = CommandClassifier.GetSwitchDecision(cmd, patterns, rules, inTelnet);
+
+        needsSwitch.Should().Be(expectedNeedsSwitch);
+        toTelnet.Should().Be(expectedToTelnet);
+        finalCmd.Should().Be(expectedFinalCmd);
+    }
+
+    [Fact]
+    public void 规则匹配的命令_SSH环境_需切Telnet并返回映射值()
+    {
+        var rules = new List<IntentRule>
+        {
+            new IntentRule("关站 关电源", "set-rf:off")
+        };
+
+        var (needsSwitch, toTelnet, finalCmd) = CommandClassifier.GetSwitchDecision(
+            "关站", new List<CommandPattern>(), rules, inTelnet: false);
+
+        needsSwitch.Should().BeTrue();
+        toTelnet.Should().BeTrue();
+        finalCmd.Should().Be("set-rf:off");
+    }
+
+    [Fact]
+    public void 规则匹配的命令_已在Telnet_无需切换()
+    {
+        var rules = new List<IntentRule>
+        {
+            new IntentRule("关站 关电源", "set-rf:off")
+        };
+
+        var (needsSwitch, toTelnet, finalCmd) = CommandClassifier.GetSwitchDecision(
+            "关站", new List<CommandPattern>(), rules, inTelnet: true);
+
+        needsSwitch.Should().BeFalse();
+        toTelnet.Should().BeTrue();
+        finalCmd.Should().Be("set-rf:off");
+    }
 }

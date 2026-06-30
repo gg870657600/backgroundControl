@@ -1264,15 +1264,12 @@ namespace backgroundControl
         {
             try
             {
-                var (isLinux, _) = ClassifyCommand(cmd);
-                if (isLinux)
+                var (needsSwitch, toTelnet, finalCmd) = CommandClassifier.GetSwitchDecision(
+                    cmd, _commandPatterns, _intentRules, _currentEnv == ShellEnvironment.TelnetCli);
+                if (needsSwitch)
                 {
-                    if (_currentEnv == ShellEnvironment.TelnetCli)
-                        await SwitchToAsync(toTelnet: false);
-                }
-                else
-                {
-                    await SwitchToAsync(toTelnet: true);
+                    await SwitchToAsync(toTelnet);
+                    _globalShell.WriteLine(finalCmd);
                 }
             }
             catch { }
@@ -1288,7 +1285,7 @@ namespace backgroundControl
             {
                 string processed;
                 lock (_logLock)
-                    processed = _cleanOutput.ToString().Replace("\n", Environment.NewLine);
+                    processed = LogClipboardHelper.PrepareLog(_cleanOutput).text;
 
                 if (string.IsNullOrWhiteSpace(processed))
                 {

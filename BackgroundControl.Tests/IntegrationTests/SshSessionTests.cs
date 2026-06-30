@@ -107,6 +107,41 @@ public class SshSessionTests : IDisposable
 
     [Fact]
     [Trait("Category", "Integration")]
+    public async Task SSH_Telnet_来回切换_两边命令都正常执行()
+    {
+        if (!_connected) throw new SkipTestException("设备未连接");
+
+        // 1) SSH 环境：执行 Linux 命令
+        _shell.WriteLine("echo ssh-before-ok");
+        await Task.Delay(1000);
+        var sshBefore = _shell.Read();
+        sshBefore.Should().Contain("ssh-before-ok");
+
+        // 2) 进入 Telnet → 执行私有命令
+        _shell.WriteLine("telnet 0 2323");
+        await Task.Delay(2000);
+        _shell.WriteLine("login:root,Changeme_123");
+        await Task.Delay(1000);
+        _shell.WriteLine("get-ne-type");
+        await Task.Delay(2000);
+        var telnetOutput = _shell.Read();
+        telnetOutput.Should().Contain("OK");
+
+        // 3) 退出 Telnet 回到 SSH
+        _shell.WriteLine("\x03");
+        await Task.Delay(500);
+        _shell.WriteLine("e");
+        await Task.Delay(1000);
+
+        // 4) 回到 SSH 后再次执行 Linux 命令
+        _shell.WriteLine("echo ssh-after-ok");
+        await Task.Delay(1000);
+        var sshAfter = _shell.Read();
+        sshAfter.Should().Contain("ssh-after-ok");
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
     public void ConnectToNonexistentDevice_ThrowsOrTimesOut()
     {
         var ci = new ConnectionInfo("192.168.1.234", 22, "root",

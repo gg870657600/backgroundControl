@@ -251,7 +251,7 @@ namespace backgroundControl
             {
                 string processed;
                 lock (_logLock)
-                    processed = _cleanOutput.ToString().Replace("\n", Environment.NewLine);
+                    processed = LogClipboardHelper.PrepareLog(_cleanOutput).text;
 
                 if (string.IsNullOrWhiteSpace(processed))
                 {
@@ -260,7 +260,7 @@ namespace backgroundControl
                 }
 
                 System.Windows.Clipboard.SetText(processed, System.Windows.TextDataFormat.UnicodeText);
-                System.Windows.MessageBox.Show($"✅ 已复制 {processed.Length} 字符串口日志！", "成功");
+                System.Windows.MessageBox.Show($"✅ 已复制 {processed.Length} 字符控制台日志！", "成功");
             }
             catch (Exception ex)
             {

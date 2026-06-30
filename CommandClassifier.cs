@@ -110,4 +110,19 @@ public static class CommandClassifier
 
         return (false, finalCmd);
     }
+
+    /// <summary>
+    /// 判断是否需要切换环境（SSH↔Telnet），以及切换方向。
+    /// </summary>
+    /// <param name="inTelnet">当前是否在 Telnet 环境</param>
+    /// <returns>(needsSwitch, toTelnet, finalCmd)</returns>
+    public static (bool needsSwitch, bool toTelnet, string finalCmd) GetSwitchDecision(
+        string cmd, List<CommandPattern> patterns, List<IntentRule> rules, bool inTelnet)
+    {
+        var (isLinux, finalCmd) = ClassifyCommand(cmd, patterns, rules);
+        if (isLinux)
+            return (inTelnet, false, finalCmd);       // Linux cmd → 需要在 SSH 环境
+        else
+            return (!inTelnet, true, finalCmd);        // 私有命令 → 需要在 Telnet 环境
+    }
 }
