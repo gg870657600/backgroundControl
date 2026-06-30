@@ -27,23 +27,66 @@ public static class CommandClassifier
 {
     private static readonly HashSet<string> _linuxCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
+        // 文件/目录
         "cd","pwd","ls","ll","dir","cat","touch","cp","mv","rm","rmdir","mkdir",
         "chmod","chown","chgrp","ln","find","grep","df","du","mount","umount",
+        "cut","sort","uniq","tr","diff","tee","xargs","comm","cmp","join",
+        "paste","split","wc","nl","od","strings","expand","unexpand",
+        "realpath","readlink","basename","dirname","mkfifo","mknod","truncate","shred",
+        // 进程/任务
         "ps","top","htop","btop","free","uptime","who","w","id","uname","hostname",
-        "ping","ifconfig","ip","netstat","ss","traceroute","nslookup","dig","curl","wget",
-        "telnet","ssh","ftp","nload","iftop","tcpdump",
-        "kill","killall","systemctl","service","ps","pgrep","pkill",
+        "kill","killall","pgrep","pkill","nice","renice","nohup","fg","bg","jobs",
+        "screen","tmux","at","batch","crontab","timeout",
+        // 网络
+        "ping","ifconfig","ip","netstat","ss","traceroute","tracepath","nslookup",
+        "dig","curl","wget","telnet","ssh","ftp","tftp","sftp",
+        "nmap","mtr","host","nc","whois","iptables","ufw","arp","route",
+        "nload","iftop","tcpdump","dhclient","iwconfig","iw",
+        "ssh-keygen","ssh-copy-id","ssh-add","ssh-agent","scp","socat",
+        // 存储/磁盘
+        "fdisk","parted","mkfs","fsck","blkid","lsblk","eject","sync","dd","badblocks",
+        // 系统信息
+        "lscpu","lspci","lshw","lsmod","lsusb","lsof","dmesg","dmidecode",
+        "sysctl","modprobe","insmod","rmmod","modinfo","depmod",
+        "arch","nproc","uname",
+        // 包管理
+        "apt","apt-get","apt-cache","dpkg","yum","dnf","rpm","pacman","apk","snap",
+        // 用户
+        "sudo","su","passwd","useradd","usermod","userdel","groupadd","groupmod",
+        "groupdel","chsh","chage","whoami","logname","exit","logout",
+        // 文本编辑/查看
         "echo","tail","head","more","less","vi","vim","nano","sed","awk",
-        "tar","gzip","gunzip","zip","unzip",
-        "clear","reset","date","cal","watch","man","which","whereis","sh","bash",
-        "bsp","reboot"
+        "cat","tac","rev",
+        // 压缩/归档
+        "tar","gzip","gunzip","zip","unzip","xz","unxz","bzip2","bunzip2",
+        "zcat","lz4","zstd",
+        // Shell 内置
+        "alias","unalias","type","env","export","unset","source","exec","eval",
+        "set","times","trap","shopt",
+        // 开发/容器
+        "git","svn","gcc","g++","make","cmake","python","python3","perl",
+        "ruby","go","rustc","cargo","node","npm","yarn",
+        "docker","podman","kubectl","helm",
+        // 日志/服务
+        "journalctl","logger","systemctl","service",
+        // 终端
+        "clear","reset","date","cal","watch","man","which","whereis",
+        "tput","stty","resize","script","sh","bash","zsh","fish","ksh","csh",
+        // 杂项
+        "yes","seq","shuf","time","stdbuf","base64","sleep","usleep",
+        "tee","stdbuf",
+        // 设备专有
+        "bsp","reboot","poweroff","shutdown","halt","init",
     };
 
     public static bool IsLinuxCommand(string i)
     {
         if (string.IsNullOrWhiteSpace(i)) return false;
         var first = i.Trim().Split().FirstOrDefault();
-        return _linuxCommands.Contains(first);
+        if (first == null) return false;
+        if (_linuxCommands.Contains(first)) return true;
+        if (first.Contains('/') || first.StartsWith(".")) return true;
+        return false;
     }
 
     public static bool IsDirectCommand(string input)

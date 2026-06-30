@@ -265,13 +265,13 @@ namespace backgroundControl
         #endregion
 
         #region SSH 连接
-        public void ConnectWithCredentials(string ip, int port, string username, string password)
+        public async void ConnectWithCredentials(string ip, int port, string username, string password)
         {
             IpTextBox.Text = ip;
             PortTextBox.Text = port.ToString();
             UserTextBox.Text = username;
             PasswordBox.Password = password;
-            ConnectSshWithPassword(ip, username, password);
+            await ConnectSshWithPassword(ip, username, password);
         }
 
         private void TogglePassword_Click(object sender, RoutedEventArgs e)
@@ -290,33 +290,34 @@ namespace backgroundControl
             }
         }
 
-        private void ConnectButton_Click(object sender, RoutedEventArgs e)
+        private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
             string ip = IpTextBox.Text.Trim();
             string username = UserTextBox.Text.Trim();
             string password = PasswordBox.Password;
-            ConnectSshWithPassword(ip, username, password);
+            await ConnectSshWithPassword(ip, username, password);
         }
 
-        private string ConnectSshWithPassword(string targetIp, string username, string password)
+        private async Task<string> ConnectSshWithPassword(string targetIp, string username, string password)
         {
             try
             {
                 var port = 22;
                 int.TryParse(PortTextBox.Text, out port);
 
-                // 1. 建立 SSH 终端连接（始终使用默认 SSH 端口，保持不变）
+                // 1. 建立 SSH 终端连接（阻塞操作放到后台线程）
                 var connectionInfo = new ConnectionInfo(targetIp, port, username,
                     new PasswordAuthenticationMethod(username, password));
                 var client = new SshClient(connectionInfo);
-                connectionInfo.Timeout = TimeSpan.FromSeconds(3);//超时时间
-                client.Connect();
+                connectionInfo.Timeout = TimeSpan.FromSeconds(3);
+                await Task.Run(() => client.Connect());
 
                 if (client.IsConnected)
                 {
                     _sshClient = client;
                     _isConnected = true;
-                    _globalShell = client.CreateShellStream("xterm-256color", 80, 24, 800, 600, 1024 * 1024);
+                    _globalShell = await Task.Run(() =>
+                        client.CreateShellStream("xterm-256color", 80, 24, 800, 600, 1024 * 1024));
                     var conn = new SshTerminalConnection(new ShellStreamAdapter(_globalShell), cmd => Dispatcher.InvokeAsync(() => AutoSwitchByFullCommand(cmd)));
                     _terminalConnection = conn;
                     var proxy = new HighlightTerminalConnection(conn);
@@ -325,7 +326,7 @@ namespace backgroundControl
                         _cleanOutput.Append(AnsiStripper.Strip(text));
                     } };
                     TerminalControl.Connection = proxy;
-                    _globalShell.WriteLine("export TMOUT=0");
+                    await Task.Run(() => _globalShell.WriteLine("export TMOUT=0"));
                     // 订阅输出事件，以便在每次输出后滚动到底部
                     conn.TerminalOutput += (sender, args) =>
                     {
@@ -345,15 +346,26 @@ namespace backgroundControl
                         LoopButton.IsEnabled = true;
                     });
 
-                    SshHistoryManager.RecordConnection(targetIp, port, username, password);
+                    await Task.Run(() => SshHistoryManager.RecordConnection(targetIp, port, username, password));
 
                 }
 
                 // 2. 尝试 SFTP + SCP 回退（最常用）
-                bool sftpSuccess = _fileService.Connect(targetIp, port, username, password);
+                bool sftpSuccess = await Task.Run(() => _fileService.Connect(targetIp, port, username, password));
                 if (sftpSuccess)
                 {
-                    LoadRemoteDirectory("/");
+                    try
+                    {
+                        var files = await Task.Run(() => _fileService.ListDirectory("/"));
+                        _currentRemotePath = "/";
+                        CurrentPathTextBox.Text = "/";
+                        FileListView.ItemsSource = files;
+                        UpdateBreadcrumb("/");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Windows.MessageBox.Show($"加载目录失败: {ex.Message}");
+                    }
                 }
                 // 连接成功且 SFTP 可用时
                 Dispatcher.Invoke(() =>
