@@ -115,6 +115,18 @@ namespace backgroundControl
 
             SendButton.IsEnabled = true;
             LoopButton.IsEnabled = true;
+
+            InputComboBox.Loaded += (_, _) =>
+            {
+                if (InputComboBox.Template.FindName("PART_EditableTextBox", InputComboBox) is System.Windows.Controls.TextBox tb)
+                {
+                    tb.TextChanged += (_, _) =>
+                    {
+                        if (!_suppressSuggestion) ShowSuggestions(InputComboBox.Text);
+                    };
+                }
+            };
+
             LoadHistory();
             InputComboBox.ItemsSource = _inputHistory;
 
@@ -1227,9 +1239,153 @@ namespace backgroundControl
             {
                 if (!_isConnected || _sshClient == null) return;
 
+                if (SuggestionList.Visibility == Visibility.Visible && SuggestionList.SelectedItem != null)
+                {
+                    ApplySuggestion(SuggestionList.SelectedItem);
+                    e.Handled = true;
+                    return;
+                }
+
                 SendButton_Click(sender, e);
                 e.Handled = true;
             }
+            else if (e.Key == Key.Down && SuggestionList.Visibility == Visibility.Visible)
+            {
+                if (SuggestionList.Items.Count > 0)
+                {
+                    SuggestionList.SelectedIndex = 0;
+                    _ = SuggestionList.Focus();
+                }
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                HideSuggestions();
+            }
+        }
+
+        private void SuggestionList_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var item = (e.OriginalSource as FrameworkElement)?.DataContext;
+            if (item is CommandSuggestion)
+            {
+                ApplySuggestion(item);
+                e.Handled = true;
+            }
+        }
+
+        private void SuggestionList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && SuggestionList.SelectedItem != null)
+            {
+                ApplySuggestion(SuggestionList.SelectedItem);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                HideSuggestions();
+                _ = InputComboBox.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private bool _suppressSuggestion;
+
+        private void ShowSuggestions(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input) || _ruleItems.Count == 0)
+            {
+                HideSuggestions();
+                return;
+            }
+
+            var suggestions = GetSuggestions(input);
+            if (suggestions.Count > 0)
+            {
+                SuggestionList.ItemsSource = suggestions;
+                SuggestionList.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                HideSuggestions();
+            }
+        }
+
+        private void HideSuggestions()
+        {
+            SuggestionList.Visibility = Visibility.Collapsed;
+            SuggestionList.ItemsSource = null;
+        }
+
+        private void ApplySuggestion(object item)
+        {
+            if (item is CommandSuggestion sug)
+            {
+                _suppressSuggestion = true;
+                InputComboBox.Text = sug.Keyword;
+                _suppressSuggestion = false;
+                HideSuggestions();
+                _ = InputComboBox.Focus();
+            }
+        }
+
+        private List<CommandSuggestion> GetSuggestions(string input)
+        {
+            var normalized = input.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(normalized)) return new List<CommandSuggestion>();
+
+            var scored = new List<(CommandSuggestion s, int score)>();
+
+            foreach (var rule in _ruleItems)
+            {
+                int bestScore = 0;
+                string? matchedKeyword = null;
+
+                foreach (var keyword in rule.KeywordList)
+                {
+                    var normKw = keyword.Replace(" ", "").ToLowerInvariant();
+                    int score = 0;
+                    if (normKw == normalized)
+                        score = 100;
+                    else if (normKw.StartsWith(normalized))
+                        score = 80;
+                    else if (normKw.Contains(normalized))
+                        score = 60;
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        matchedKeyword = keyword;
+                    }
+                }
+
+                if (bestScore > 0 && matchedKeyword != null)
+                {
+                    scored.Add((new CommandSuggestion
+                    {
+                        Keyword = matchedKeyword,
+                        Command = rule.Command
+                    }, bestScore));
+                    continue;
+                }
+
+                if (rule.Command.ToLowerInvariant().Contains(normalized))
+                {
+                    scored.Add((new CommandSuggestion
+                    {
+                        Keyword = normalized,
+                        Command = rule.Command,
+                        IsCommandMatch = true
+                    }, 40));
+                }
+            }
+
+            return scored
+                .OrderByDescending(x => x.score)
+                .ThenBy(x => x.s.Keyword)
+                .Take(8)
+                .Select(x => x.s)
+                .ToList();
         }
 
         public void DisposeSession()
@@ -1813,6 +1969,13 @@ namespace backgroundControl
         public string Command { get; set; } = "";
         public List<string> KeywordList => Keywords.Split(new[] { ' ', '、' }, System.StringSplitOptions.RemoveEmptyEntries).ToList();
         public List<string> NormalizedKeywords => KeywordList.Select(k => k.Replace(" ", "").ToLowerInvariant()).ToList();
+    }
+
+    internal class CommandSuggestion
+    {
+        public string Keyword { get; set; } = "";
+        public string Command { get; set; } = "";
+        public bool IsCommandMatch { get; set; }
     }
 
     public static class RuleStorage
