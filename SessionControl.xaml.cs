@@ -79,6 +79,11 @@ namespace backgroundControl
 
         // Ctrl+滚轮缩放终端字号
         private int _terminalFontSize = 12;
+        private bool _isTerminalFullscreen;
+        private GridLength _savedLeftWidth;
+        private GridLength _savedSplitterWidth;
+        private bool _savedConnectionExpanded;
+        private bool _savedInputExpanded;
 
         private void EnsureMouseWheelHook()
         {
@@ -1064,6 +1069,55 @@ namespace backgroundControl
                 }
             }
             catch { }
+        }
+
+        private void FullscreenButton_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleTerminalFullscreen();
+        }
+
+        private void ToggleTerminalFullscreen()
+        {
+            _isTerminalFullscreen = !_isTerminalFullscreen;
+
+            if (_isTerminalFullscreen)
+            {
+                _savedLeftWidth = LeftColumn.Width;
+                _savedSplitterWidth = SplitterColumn.Width;
+                _savedConnectionExpanded = ConnectionExpander.IsExpanded;
+                _savedInputExpanded = InputExpander.IsExpanded;
+
+                LeftColumn.Width = new GridLength(0);
+                SplitterColumn.Width = new GridLength(0);
+                ConnectionExpander.Visibility = Visibility.Collapsed;
+                ConnectionExpander.IsExpanded = false;
+                InputExpander.Visibility = Visibility.Collapsed;
+                InputExpander.IsExpanded = false;
+
+                var mainWin = Window.GetWindow(this) as MainWindow;
+                mainWin?.SetFullscreenMode(true);
+            }
+            else
+            {
+                LeftColumn.Width = _savedLeftWidth;
+                SplitterColumn.Width = _savedSplitterWidth;
+                ConnectionExpander.Visibility = Visibility.Visible;
+                ConnectionExpander.IsExpanded = _savedConnectionExpanded;
+                InputExpander.Visibility = Visibility.Visible;
+                InputExpander.IsExpanded = _savedInputExpanded;
+
+                var mainWin = Window.GetWindow(this) as MainWindow;
+                mainWin?.SetFullscreenMode(false);
+            }
+        }
+
+        private void RootGrid_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && _isTerminalFullscreen)
+            {
+                ToggleTerminalFullscreen();
+                e.Handled = true;
+            }
         }
 
         private void DisconnectButton_Click(object sender, RoutedEventArgs e)

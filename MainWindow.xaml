@@ -52,7 +52,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- 侧边栏切换按钮条 -->
-        <Border Grid.Column="0" Background="#2C3E50" Width="16">
+        <Border x:Name="SidebarToggleBorder" Grid.Column="0" Background="#2C3E50" Width="16">
             <Button x:Name="BtnToggleSidebar" Background="Transparent" BorderThickness="0"
                     Foreground="White" FontSize="10" Padding="0"
                     Cursor="Hand" Content="☰"
@@ -104,7 +104,7 @@
 
         <!-- 主内容 -->
         <DockPanel Grid.Column="2">
-            <Border DockPanel.Dock="Top" Background="#2C3E50" Padding="10,5">
+            <Border x:Name="ToolbarBorder" DockPanel.Dock="Top" Background="#2C3E50" Padding="10,5">
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="AddSessionButton" 
                             Content="+ 新建SSH会话" 

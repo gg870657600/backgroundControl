@@ -217,6 +217,51 @@ namespace backgroundControl
             _toolsWindow.Activate();
         }
 
+        // ---------- 全屏终端 ----------
+        private bool _isFullscreen;
+        private GridLength _savedSidebarWidth;
+        private bool _savedSidebarOpen;
+
+        public void SetFullscreenMode(bool fullscreen)
+        {
+            _isFullscreen = fullscreen;
+
+            if (fullscreen)
+            {
+                _savedSidebarOpen = _sidebarOpen;
+                _savedSidebarWidth = SidebarColumn.Width;
+
+                SidebarToggleBorder.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
+                ToolbarBorder.Visibility = Visibility.Collapsed;
+
+                var tabPanel = FindVisualChild<System.Windows.Controls.Primitives.TabPanel>(SessionTabControl);
+                if (tabPanel != null) tabPanel.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                SidebarToggleBorder.Visibility = Visibility.Visible;
+                SidebarColumn.Width = _savedSidebarWidth;
+                ToolbarBorder.Visibility = Visibility.Visible;
+                _sidebarOpen = _savedSidebarOpen;
+
+                var tabPanel = FindVisualChild<System.Windows.Controls.Primitives.TabPanel>(SessionTabControl);
+                if (tabPanel != null) tabPanel.Visibility = Visibility.Visible;
+            }
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T t) return t;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
         // ---------- 侧边栏 ----------
         private bool _sidebarOpen;
 

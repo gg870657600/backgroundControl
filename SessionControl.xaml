@@ -133,7 +133,7 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
-    <Grid Margin="15">
+    <Grid Margin="15" PreviewKeyDown="RootGrid_PreviewKeyDown">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="LeftColumn" Width="280"/>
             <ColumnDefinition x:Name="SplitterColumn" Width="5"/>
@@ -255,7 +255,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <!-- 1. 连接配置 -->
-            <Expander Grid.Row="0" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0" Padding="0">
+            <Expander x:Name="ConnectionExpander" Grid.Row="0" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0" Padding="0">
                 <Expander.Header>
                     <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
                         <TextBlock Text="🔌 连接配置" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
@@ -309,7 +309,7 @@
             </Expander>
 
             <!-- 2. 自然语言指令（编辑规则按钮移到标题栏） -->
-            <Expander Grid.Row="1" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0" Padding="0">
+            <Expander x:Name="InputExpander" Grid.Row="1" IsExpanded="True" Margin="0,0,0,15" Background="Transparent" BorderThickness="0" Padding="0">
                 <Expander.Header>
                     <Border Background="White" CornerRadius="8" Padding="15" Margin="0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -360,6 +360,7 @@
                             <Button x:Name="ClearButton" Content="🗑️ 清空输出" Width="100" Margin="10,0,0,0" Click="ClearButton_Click" Style="{StaticResource ModernButton}" Background="#6C757D"/>
                             <Button x:Name="StopButton" Content="⏹️ 停止(Ctrl+C)" Width="120" Margin="10,0,0,0" Click="StopButton_Click" Style="{StaticResource DangerButton}" Background="#E67E22"/>
                             <Button x:Name="CopyLogButton" Content="📄 复制日志" Width="100" Margin="10,0,0,0" Click="CopyAllLog_Click" Style="{StaticResource ModernButton}" Background="#2ECC71"/>
+                            <Button x:Name="FullscreenButton" Content="⛶ 全屏" Width="80" Margin="10,0,0,0" Click="FullscreenButton_Click" Style="{StaticResource ModernButton}" Background="#8E44AD"/>
                         </StackPanel>
                     </Border>
                 </Expander.Header>
