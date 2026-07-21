@@ -108,7 +108,7 @@ namespace backgroundControl
                 new CommandPattern
                 {
                     Name = "寄存器读取",
-                    Regex = new Regex(@"(?:查询|读|查看)?\s*寄存器\s*([0-9a-fA-Fx]+)|(?:^|\s)([0-9a-fA-F]{1,4})(?:\s|$)", RegexOptions.IgnoreCase),
+                    Regex = new Regex(@"(?:查询|读|查看)?\s*寄存器\s*([0-9a-fA-Fx]+)|(?:^|\s)0?x([0-9a-fA-F]{1,4})(?:\s|$)", RegexOptions.IgnoreCase),
                     CommandBuilder = (match) =>
                     {
                         string addr = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
