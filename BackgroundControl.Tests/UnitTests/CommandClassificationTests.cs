@@ -3,9 +3,11 @@ using backgroundControl;
 public class CommandClassificationTests
 {
     [Theory]
-    [InlineData("ls", true)]
-    [InlineData("cd /tmp", true)]
-    [InlineData("grep foo bar", true)]
+    [InlineData("/usr/bin/ls", true)]
+    [InlineData("./script.sh", true)]
+    [InlineData("ls", false)]
+    [InlineData("cd /tmp", false)]
+    [InlineData("grep foo bar", false)]
     [InlineData("get-ne-type", false)]
     [InlineData("set-rf:on", false)]
     [InlineData("", false)]
